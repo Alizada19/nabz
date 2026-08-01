@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  donor
+  seeker
+}
+
+enum RequestStatus {
+  pending
+  matched
+  completed
+  cancelled
+}
+
+enum UrgencyLevel {
+  low
+  medium
+  high
+  critical
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  phone         String   @unique
+  password      String
+  role          Role     @default(seeker)
+  latitude      Float?
+  longitude     Float?
+  location      String?
+  isAvailable   Boolean  @default(true)
+  refreshToken  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  donorProfile   DonorProfile?
+  bloodRequests  BloodRequest[]
+  notifications  Notification[]
+
+  @@index([role])
+  @@index([latitude, longitude])
+  @@map("users")
+}
+
+model BloodType {
+  id   String @id @default(uuid())
+  name String @unique // e.g. A+, A-, B+, B-, AB+, AB-, O+, O-
+
+  donorProfiles  DonorProfile[]
+  bloodRequests  BloodRequest[]
+
+  @@map("blood_types")
+}
+
+model DonorProfile {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  bloodTypeId      String
+  lastDonationDate DateTime?
+  totalDonations   Int       @default(0)
+  availableStatus  Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bloodType BloodType @relation(fields: [bloodTypeId], references: [id])
+
+  @@index([bloodTypeId])
+  @@map("donor_profiles")
+}
+
+model BloodRequest {
+  id              String        @id @default(uuid())
+  seekerId        String
+  bloodTypeId     String
+  hospitalName    String
+  hospitalAddress String
+  latitude        Float
+  longitude       Float
+  unitsRequired   Int
+  urgencyLevel    UrgencyLevel  @default(medium)
+  status          RequestStatus @default(pending)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  seeker    User      @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+  bloodType BloodType @relation(fields: [bloodTypeId], references: [id])
+
+  @@index([bloodTypeId])
+  @@index([status])
+  @@index([latitude, longitude])
+  @@map("blood_requests")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
