@@ -1,6 +1,15 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1';
+const getDynamicApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // Dynamically match the corresponding NestJS backend port (3002) on the same host
+    return `http://${hostname}:3002/api/v1`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1';
+};
+
+const API_URL = getDynamicApiUrl();
 
 export const getAccessToken = () => {
   if (typeof window !== 'undefined') {
@@ -38,13 +47,19 @@ export const client = axios.create({
   },
 });
 
-// Automatically inject JWT access token
+// Automatically inject JWT access token and dynamically set base URL
 client.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Dynamically align Axios requests to port 3002 on the same host (localhost or LAN IP)
+    if (typeof window !== 'undefined') {
+      config.baseURL = `http://${window.location.hostname}:3002/api/v1`;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

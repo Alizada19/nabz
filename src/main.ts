@@ -12,25 +12,32 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
-  // Security
+  // Security - configure Helmet to allow cross-origin requests
   app.use(
     helmet({
       crossOriginOpenerPolicy: false,
       originAgentCluster: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
 
-  // Allow access from host machine / LAN
+  // Allow access from localhost, loopback, and LAN networks with any port
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://192.168.135.50:3000',
-      'http://192.168.135.50',
-    ],
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const allowedPattern = /^(https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?)$/;
+      if (allowedPattern.test(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false); // allow CORS to respond with normal failure instead of throwing
+      }
+    },
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   });
 
   // Global prefix & versioning
