@@ -3,8 +3,22 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 const getDynamicApiUrl = () => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Dynamically match the corresponding NestJS backend port (3000) on the same host
-    return `http://${hostname}:3000/api/v1`;
+    const protocol = window.location.protocol;
+
+    // Determine if accessing from a local/LAN network
+    const isLocal =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.');
+
+    if (isLocal) {
+      return `http://${hostname}:3000/api/v1`;
+    } else {
+      // Production Cloudflare Tunnel environment (e.g., nabz.asia) over HTTPS without port 3000
+      return `${protocol}//${hostname}/api/v1`;
+    }
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 };
@@ -55,9 +69,23 @@ client.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Dynamically align Axios requests to port 3000 on the same host (localhost or LAN IP)
+    // Dynamically align Axios requests depending on environment (local vs. production domain)
     if (typeof window !== 'undefined') {
-      config.baseURL = `http://${window.location.hostname}:3000/api/v1`;
+      const hostname = window.location.hostname;
+      const protocol = window.location.protocol;
+
+      const isLocal =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        hostname.startsWith('172.');
+
+      if (isLocal) {
+        config.baseURL = `http://${hostname}:3000/api/v1`;
+      } else {
+        config.baseURL = `${protocol}//${hostname}/api/v1`;
+      }
     }
 
     return config;

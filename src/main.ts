@@ -21,14 +21,14 @@ async function bootstrap() {
     }),
   );
 
-  // Allow access from localhost, loopback, and LAN networks with any port
+  // Allow access from localhost, loopback, LAN networks, and the production domain (nabz.asia) with any port
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
         callback(null, true);
         return;
       }
-      const allowedPattern = /^(https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?)$/;
+      const allowedPattern = /^(https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|(.*\.)?nabz\.asia)(:\d+)?)$/;
       if (allowedPattern.test(origin)) {
         callback(null, true);
       } else {
