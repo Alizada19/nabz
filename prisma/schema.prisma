@@ -11,6 +11,8 @@ enum Role {
   admin
   donor
   seeker
+  hospital
+  blood_bank
 }
 
 enum RequestStatus {

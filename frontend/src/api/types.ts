@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'donor' | 'seeker';
+export type Role = 'admin' | 'donor' | 'seeker' | 'hospital' | 'blood_bank';
 
 export type RequestStatus = 'pending' | 'matched' | 'completed' | 'cancelled';
 

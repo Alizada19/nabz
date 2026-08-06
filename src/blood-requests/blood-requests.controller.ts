@@ -16,7 +16,7 @@ export class BloodRequestsController {
   constructor(private readonly bloodRequestsService: BloodRequestsService) {}
 
   @Post()
-  @Roles(Role.seeker, Role.admin)
+  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
   @ApiOperation({
     summary: 'Create an emergency blood request',
     description:
@@ -32,7 +32,7 @@ export class BloodRequestsController {
   }
 
   @Get('my')
-  @Roles(Role.seeker, Role.admin)
+  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
   @ApiOperation({ summary: "List the current seeker's blood requests (paginated)" })
   async findMine(
     @CurrentUser() user: AuthenticatedUser,
@@ -53,7 +53,7 @@ export class BloodRequestsController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.seeker, Role.admin)
+  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
   @ApiOperation({ summary: 'Update the status of a blood request' })
   async updateStatus(
     @CurrentUser() user: AuthenticatedUser,

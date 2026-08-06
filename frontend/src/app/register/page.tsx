@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuthStore } from '@/store/auth';
 import { authService } from '@/api/auth';
-import { bloodTypesService } from '@/api/bloodTypes';
 import { donorProfilesService } from '@/api/donorProfiles';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -14,14 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, MapPin, Navigation } from 'lucide-react';
+import { Activity, MapPin, Navigation, Heart, ShieldAlert, Award } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long'),
   email: z.string().email('Please enter a valid email address'),
   phone: z.string().min(8, 'Please enter a valid phone number'),
   password: z.string().min(8, 'Password must be at least 8 characters long'),
-  role: z.enum(['donor', 'seeker', 'admin']),
+  role: z.enum(['donor', 'seeker', 'hospital', 'blood_bank']),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   location: z.string().min(2, 'Location string is required'),
@@ -34,7 +33,7 @@ export default function RegisterPage() {
   const { login } = useAuthStore();
   const { success, error } = useToast();
   const router = useRouter();
-  const [role, setRole] = useState<'donor' | 'seeker' | 'admin'>('seeker');
+  const [role, setRole] = useState<'donor' | 'seeker' | 'hospital' | 'blood_bank'>('seeker');
   const [detectingLocation, setDetectingLocation] = useState(false);
 
   const {
@@ -147,9 +146,9 @@ export default function RegisterPage() {
         <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Full Name"
+              label="Name (or Facility Name)"
               type="text"
-              placeholder="Ahmad Zulkifli"
+              placeholder="e.g. John Doe / General Hospital"
               error={errors.name?.message}
               {...register('name')}
             />
@@ -183,10 +182,12 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
-              label="Choose Role"
+              label="Choose Participant Role"
               options={[
-                { value: 'seeker', label: 'Blood Seeker (Hospital/Family)' },
+                { value: 'seeker', label: 'Blood Seeker (Individual)' },
                 { value: 'donor', label: 'Blood Donor (Individual)' },
+                { value: 'hospital', label: 'Hospital (Organization)' },
+                { value: 'blood_bank', label: 'Blood Bank (Organization)' },
               ]}
               error={errors.role?.message}
               {...register('role', {
@@ -210,6 +211,34 @@ export default function RegisterPage() {
                 error={errors.bloodType?.message}
                 {...register('bloodType')}
               />
+            )}
+          </div>
+
+          {/* Dynamic Helper Info Box */}
+          <div className="bg-red-50/30 rounded-2xl p-4 border border-red-100/50 text-xs text-gray-600">
+            {watchRole === 'donor' && (
+              <p className="flex gap-2 items-start">
+                <Heart className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Individual Donor:</strong> Register to declare availability, manage eligibility, receive emergency alerts matching your blood type, and accept coordinate donation requests.
+                </span>
+              </p>
+            )}
+            {watchRole === 'seeker' && (
+              <p className="flex gap-2 items-start">
+                <ShieldAlert className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Individual Seeker:</strong> Create direct emergency request broadcasts, trace proximity-compatible donors, and coordinate blood supplies directly.
+                </span>
+              </p>
+            )}
+            {(watchRole === 'hospital' || watchRole === 'blood_bank') && (
+              <p className="flex gap-2 items-start">
+                <Award className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Supporting Organization:</strong> Register your facility to publish authorized local emergency requests, match proximity donors, and track local stocks.
+                </span>
+              </p>
             )}
           </div>
 

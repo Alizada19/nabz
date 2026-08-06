@@ -32,7 +32,7 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({ enum: Role, example: Role.donor })
-  @IsEnum(Role, { message: 'Role must be one of: admin, donor, seeker' })
+  @IsEnum(Role, { message: 'Role must be one of: admin, donor, seeker, hospital, blood_bank' })
   role: Role;
 
   @ApiProperty({ example: 3.139, required: false })

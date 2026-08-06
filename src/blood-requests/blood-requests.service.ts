@@ -26,8 +26,13 @@ export class BloodRequestsService {
   ) {}
 
   async create(seekerId: string, seekerRole: Role, dto: CreateBloodRequestDto) {
-    if (seekerRole !== Role.seeker && seekerRole !== Role.admin) {
-      throw new ForbiddenException('Only seekers can create blood requests');
+    if (
+      seekerRole !== Role.seeker &&
+      seekerRole !== Role.hospital &&
+      seekerRole !== Role.blood_bank &&
+      seekerRole !== Role.admin
+    ) {
+      throw new ForbiddenException('Only seekers, hospitals, or blood banks can create blood requests');
     }
 
     const bloodType = await this.bloodTypesService.findByName(dto.bloodType);
