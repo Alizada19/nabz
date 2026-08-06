@@ -474,15 +474,15 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2.5">
                 <Building className="h-5 w-5 text-red-600" />
                 <div>
-                  <CardTitle className="text-sm font-extrabold text-gray-900">Hospital Directory Hub</CardTitle>
-                  <CardDescription className="text-xs">Quick lookup of partner dropoff locations.</CardDescription>
+                  <CardTitle className="text-sm font-extrabold text-gray-900">Partner Hospitals Directory</CardTitle>
+                  <CardDescription className="text-xs">Quick lookup of coordinated facilities.</CardDescription>
                 </div>
               </div>
               <Badge variant="info">{hospitalsCount} Facilities</Badge>
             </CardHeader>
             <CardContent className="p-5 space-y-4 text-xs font-semibold">
               <p className="text-gray-500 leading-relaxed font-medium">
-                Our active database tracks emergency dropoffs, geographic coordinate buffers, and primary telephone hotlines to accelerate blood delivery from nearby matching donors.
+                Our active database maps emergency locations, delivery buffers, and hospital coordinators to facilitate instant request dispatching and donor matching.
               </p>
               <Button
                 onClick={() => router.push('/hospitals')}
@@ -490,7 +490,7 @@ export default function DashboardPage() {
                 size="sm"
                 className="w-full font-bold flex items-center justify-center gap-1.5 h-9"
               >
-                <span>Manage Facilities Directory</span>
+                <span>Browse Hospitals Directory</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </CardContent>
@@ -501,8 +501,8 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="h-5 w-5 text-green-600" />
                 <div>
-                  <CardTitle className="text-sm font-extrabold text-gray-900">Central Reserve Stock Watch</CardTitle>
-                  <CardDescription className="text-xs">Active safety margins and stock levels.</CardDescription>
+                  <CardTitle className="text-sm font-extrabold text-gray-900">Hospital & Bank Reserves</CardTitle>
+                  <CardDescription className="text-xs">Coordinated partner inventory status.</CardDescription>
                 </div>
               </div>
               {lowReservesCount > 0 ? (
@@ -513,7 +513,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-5 space-y-4 text-xs font-semibold">
               <p className="text-gray-500 leading-relaxed font-medium">
-                Live reserves logs synchronize actual bag counts across storage facilities. Deficit thresholds trigger automatic proximity alerts to active compatible donors.
+                Monitors individual partner reserves. Safety thresholds automatically trigger Nabz to broadcast match alerts to nearby compatible active donors.
               </p>
               <Button
                 onClick={() => router.push('/blood-inventory')}
@@ -521,7 +521,7 @@ export default function DashboardPage() {
                 size="sm"
                 className="w-full font-bold flex items-center justify-center gap-1.5 h-9"
               >
-                <span>View Stock Reserves</span>
+                <span>View Hospital Reserves</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </CardContent>

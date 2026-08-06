@@ -94,9 +94,9 @@ export default function BloodInventoryPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Blood Stock Inventory</h1>
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Coordinated Hospital Reserves</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Live monitoring of central blood reserves, deficit flags, and automatic threshold indicators.
+              Live monitoring of partner hospital blood bank inventories, deficit triggers, and safety threshold alerts.
             </p>
           </div>
 
@@ -110,14 +110,14 @@ export default function BloodInventoryPage() {
           </Button>
         </div>
 
-        {/* Global Stock Stats */}
+        {/* Coordinated Stock Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Central Reserve</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Coordinated Partner Stocks</p>
                 <p className="text-3xl font-extrabold text-gray-900">{totalBags} Bags</p>
-                <p className="text-xs font-medium text-green-600">Online & verified stock levels</p>
+                <p className="text-xs font-medium text-green-600">Total volume across partner hospital facilities</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center border border-red-100 shadow-sm">
                 <Heart className="h-6 w-6 fill-current animate-pulse" />
@@ -128,9 +128,9 @@ export default function BloodInventoryPage() {
           <Card>
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Critical Stock Alerts</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Partner Deficit Alerts</p>
                 <p className="text-3xl font-extrabold text-gray-900">{criticalItems.length} Blood Types</p>
-                <p className="text-xs font-semibold text-rose-600">Below recommended safety bounds</p>
+                <p className="text-xs font-semibold text-rose-600">Below safe coordination margins</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shadow-sm">
                 <AlertTriangle className="h-6 w-6 animate-bounce" />
@@ -141,9 +141,9 @@ export default function BloodInventoryPage() {
           <Card>
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Storage Facility Health</p>
-                <p className="text-lg font-extrabold text-gray-900">Optimal (4.2&deg;C)</p>
-                <p className="text-xs font-medium text-green-600">Cold-chain compliant</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Coordinated Delivery SLA</p>
+                <p className="text-lg font-extrabold text-gray-900">98.4% Success</p>
+                <p className="text-xs font-medium text-green-600">Hospital coordination rate</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center border border-green-100 shadow-sm">
                 <CheckCircle2 className="h-6 w-6" />
@@ -157,9 +157,9 @@ export default function BloodInventoryPage() {
           <div className="bg-red-50 border border-red-150 p-4 rounded-2xl flex items-start gap-3">
             <TrendingDown className="h-5.5 w-5.5 text-red-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-xs font-bold text-red-900 uppercase tracking-wider">Depleted Blood Stocks Detected</p>
+              <p className="text-xs font-bold text-red-900 uppercase tracking-wider">Hospital Reserves Depleted</p>
               <p className="text-xs text-red-700 leading-relaxed font-semibold">
-                Central storage reports that the reserves for <span className="font-extrabold">{criticalItems.map((i) => i.bloodType?.name).join(', ')}</span> have dropped below safe hospital reserve margins. Registered compatible donors within close proximity are highly encouraged to prioritize scheduling dropoffs.
+                Partner hospital banks report that reserves for <span className="font-extrabold">{criticalItems.map((i) => i.bloodType?.name).join(', ')}</span> have dropped below safety thresholds. Nabz coordination hub has enabled proximity match broadcasts to notify available nearby compatible donors.
               </p>
             </div>
           </div>
@@ -168,9 +168,9 @@ export default function BloodInventoryPage() {
         {/* Inventory Grid / Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Central Reserve Breakdown</CardTitle>
+            <CardTitle>Coordinated Partner Reserves</CardTitle>
             <CardDescription>
-              Detailed catalog of actual versus target minimum safety reserve levels by blood group.
+              Monitor partner stock balances to guide seeker demand routing and donor dispatch.
             </CardDescription>
           </CardHeader>
           <CardContent>
