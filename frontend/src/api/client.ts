@@ -16,8 +16,9 @@ const getDynamicApiUrl = () => {
     if (isLocal) {
       return `http://${hostname}:3000/api/v1`;
     } else {
-      // Production Cloudflare Tunnel environment (e.g., nabz.asia) over HTTPS without port 3000
-      return `${protocol}//${hostname}/api/v1`;
+      // For production domain nabz.asia, the correct API subdomain is api.nabz.asia over secure HTTPS
+      const targetHost = hostname.endsWith('nabz.asia') ? 'api.nabz.asia' : hostname;
+      return `${protocol}//${targetHost}/api/v1`;
     }
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
@@ -84,7 +85,9 @@ client.interceptors.request.use(
       if (isLocal) {
         config.baseURL = `http://${hostname}:3000/api/v1`;
       } else {
-        config.baseURL = `${protocol}//${hostname}/api/v1`;
+        // For production domain nabz.asia, the correct API subdomain is api.nabz.asia over secure HTTPS
+        const targetHost = hostname.endsWith('nabz.asia') ? 'api.nabz.asia' : hostname;
+        config.baseURL = `${protocol}//${targetHost}/api/v1`;
       }
     }
 
