@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonTable } from '@/components/ui/skeleton';
-import { Search, Compass, MapPin, Navigation, Info, ShieldAlert } from 'lucide-react';
+import { Search, Compass, Navigation, ShieldAlert, Heart, Info, ArrowRight } from 'lucide-react';
 
 export default function FindDonorsPage() {
   const { user } = useAuthStore();
@@ -58,7 +58,7 @@ export default function FindDonorsPage() {
       },
       (err) => {
         console.error(err);
-        error('Failed to get location automatically.');
+        error('Failed to get location automatically. Using standard defaults.');
         setDetectingLocation(false);
       },
       { timeout: 10000 }
@@ -81,7 +81,7 @@ export default function FindDonorsPage() {
       if (res.success && res.data) {
         setDonors(res.data.items);
         setMeta(res.data.meta);
-        success(`Search completed! Found ${res.data.meta.total} compatible donor(s).`);
+        success(`Found ${res.data.meta.total} compatible, available donor(s)!`);
       } else {
         error(res.message || 'No compatible donors found');
       }
@@ -111,83 +111,127 @@ export default function FindDonorsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Search Inputs Card */}
-          <Card className="lg:col-span-1 h-fit">
-            <CardHeader>
-              <CardTitle>Search Criteria</CardTitle>
-              <CardDescription>Adjust variables to calculate proximity matches.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSearch} className="space-y-4">
-                <Select
-                  label="Target Blood Type"
-                  options={[
-                    { value: 'A+', label: 'A+' },
-                    { value: 'A-', label: 'A-' },
-                    { value: 'B+', label: 'B+' },
-                    { value: 'B-', label: 'B-' },
-                    { value: 'AB+', label: 'AB+' },
-                    { value: 'AB-', label: 'AB-' },
-                    { value: 'O+', label: 'O+' },
-                    { value: 'O-', label: 'O-' },
-                  ]}
-                  value={bloodType}
-                  onChange={(e) => setBloodType(e.target.value)}
-                />
+          <div className="space-y-6 lg:col-span-1">
+            <Card className="h-fit">
+              <CardHeader>
+                <CardTitle>Search Criteria</CardTitle>
+                <CardDescription>Adjust variables to calculate proximity matches.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSearch} className="space-y-4">
+                  <Select
+                    label="Target Blood Type"
+                    options={[
+                      { value: 'A+', label: 'A+' },
+                      { value: 'A-', label: 'A-' },
+                      { value: 'B+', label: 'B+' },
+                      { value: 'B-', label: 'B-' },
+                      { value: 'AB+', label: 'AB+' },
+                      { value: 'AB-', label: 'AB-' },
+                      { value: 'O+', label: 'O+' },
+                      { value: 'O-', label: 'O-' },
+                    ]}
+                    value={bloodType}
+                    onChange={(e) => setBloodType(e.target.value)}
+                  />
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-gray-700 tracking-wide">Base GPS Location</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={detectLocation}
-                      className="text-xs font-semibold py-1 h-7"
-                      isLoading={detectingLocation}
-                    >
-                      <Navigation className="h-3 w-3 mr-1" /> My Location
-                    </Button>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-gray-700 tracking-wide">Base GPS Location</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={detectLocation}
+                        className="text-xs font-bold py-1 h-7 px-2"
+                        isLoading={detectingLocation}
+                      >
+                        <Navigation className="h-3 w-3 mr-1" /> Get GPS
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        label="Latitude"
+                        type="number"
+                        step="any"
+                        value={latitude}
+                        onChange={(e) => setLatitude(parseFloat(e.target.value))}
+                      />
+
+                      <Input
+                        label="Longitude"
+                        type="number"
+                        step="any"
+                        value={longitude}
+                        onChange={(e) => setLongitude(parseFloat(e.target.value))}
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      label="Latitude"
-                      type="number"
-                      step="any"
-                      value={latitude}
-                      onChange={(e) => setLatitude(parseFloat(e.target.value))}
-                    />
+                  <Select
+                    label="Search Radius"
+                    options={[
+                      { value: '10', label: '10 Kilometers' },
+                      { value: '25', label: '25 Kilometers' },
+                      { value: '50', label: '50 Kilometers' },
+                      { value: '100', label: '100 Kilometers' },
+                      { value: '250', label: '250 Kilometers' },
+                    ]}
+                    value={radius.toString()}
+                    onChange={(e) => setRadius(parseInt(e.target.value))}
+                  />
 
-                    <Input
-                      label="Longitude"
-                      type="number"
-                      step="any"
-                      value={longitude}
-                      onChange={(e) => setLongitude(parseFloat(e.target.value))}
-                    />
+                  <Button
+                    type="submit"
+                    className="w-full font-bold flex items-center justify-center gap-2 pt-2.5 pb-2.5 rounded-xl"
+                    isLoading={loading}
+                  >
+                    <Search className="h-4.5 w-4.5" />
+                    <span>Search Nearby Donors</span>
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Transfusion Compatibility Helper Box */}
+            <Card>
+              <CardHeader className="py-4">
+                <div className="flex items-center gap-2 text-rose-600">
+                  <Heart className="h-4 w-4 fill-current" />
+                  <CardTitle className="text-sm font-bold">Compatibility Helper</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="text-xs text-gray-500 leading-relaxed font-semibold space-y-3.5">
+                <p>
+                  Remember that recipients of certain blood groups can receive donations from multiple compatible types.
+                  When creating matches, refer to this rule:
+                </p>
+                <div className="space-y-2 border-t border-gray-100 pt-3">
+                  <div className="flex justify-between items-center text-gray-600 font-bold">
+                    <span>If Recipient is:</span>
+                    <span>They can receive:</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Type O-</span>
+                    <span className="font-bold text-red-600">O- only</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Type O+</span>
+                    <span className="font-bold text-red-600">O+, O-</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Type A+</span>
+                    <span className="font-bold text-red-600">A+, A-, O+, O-</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Type AB+</span>
+                    <span className="font-bold text-red-600">All Types (Universal)</span>
                   </div>
                 </div>
-
-                <Select
-                  label="Search Radius"
-                  options={[
-                    { value: '10', label: '10 Kilometers' },
-                    { value: '25', label: '25 Kilometers' },
-                    { value: '50', label: '50 Kilometers' },
-                    { value: '100', label: '100 Kilometers' },
-                    { value: '250', label: '250 Kilometers' },
-                  ]}
-                  value={radius.toString()}
-                  onChange={(e) => setRadius(parseInt(e.target.value))}
-                />
-
-                <Button type="submit" className="w-full font-bold flex items-center justify-center gap-2 pt-2.5 pb-2.5 rounded-xl" isLoading={loading}>
-                  <Search className="h-4.5 w-4.5" />
-                  <span>Search Nearby</span>
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Results Card */}
           <Card className="lg:col-span-2">

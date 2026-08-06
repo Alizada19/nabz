@@ -7,19 +7,31 @@ import { BloodRequest } from '@/api/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { SkeletonTable } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, Plus, Calendar, MapPin, SlidersHorizontal } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Calendar,
+  MapPin,
+  SlidersHorizontal,
+  CheckCircle,
+  XCircle,
+  Users,
+  Eye,
+  AlertTriangle,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
 export default function BloodRequestsListPage() {
   const { user } = useAuthStore();
+  const { success, error } = useToast();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<BloodRequest[]>([]);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [meta, setMeta] = useState({
     total: 0,
     page: 1,
@@ -75,6 +87,23 @@ export default function BloodRequestsListPage() {
     }
   };
 
+  const handleStatusTransition = async (id: string, targetStatus: string) => {
+    setUpdatingId(id);
+    try {
+      const res = await bloodRequestsService.updateStatus(id, targetStatus);
+      if (res.success) {
+        success(`Successfully changed status to ${targetStatus.toUpperCase()}`);
+        // Reload list
+        fetchRequests();
+      }
+    } catch (err: any) {
+      console.error(err);
+      error(err.response?.data?.message || 'Failed to update request status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const isSeeker = user?.role === 'seeker';
   const isAdmin = user?.role === 'admin';
 
@@ -86,7 +115,7 @@ export default function BloodRequestsListPage() {
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Blood Requests</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Browse emergency blood requests, verify matching statuses and view details.
+              Browse emergency blood requests, verify matching statuses and execute workflow transitions.
             </p>
           </div>
 
@@ -96,7 +125,7 @@ export default function BloodRequestsListPage() {
               className="flex items-center gap-2 font-bold shrink-0"
             >
               <Plus className="h-4.5 w-4.5" />
-              <span>Create Request</span>
+              <span>New Blood Request</span>
             </Button>
           )}
         </div>
@@ -117,7 +146,7 @@ export default function BloodRequestsListPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/10"
+                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/10"
               />
             </div>
 
@@ -129,7 +158,7 @@ export default function BloodRequestsListPage() {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-4 py-2 text-sm rounded-xl border border-gray-200 outline-none focus:border-red-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[size:1.25rem] bg-[position:right_1rem_center] bg-no-repeat pr-10"
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 outline-none focus:border-red-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[size:1.25rem] bg-[position:right_1rem_center] bg-no-repeat pr-10"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -149,7 +178,7 @@ export default function BloodRequestsListPage() {
                   setSortOrder(order as any);
                   setPage(1);
                 }}
-                className="w-full px-4 py-2 text-sm rounded-xl border border-gray-200 outline-none focus:border-red-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[size:1.25rem] bg-[position:right_1rem_center] bg-no-repeat pr-10"
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 outline-none focus:border-red-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[size:1.25rem] bg-[position:right_1rem_center] bg-no-repeat pr-10"
               >
                 <option value="createdAt-desc">Newest First</option>
                 <option value="createdAt-asc">Oldest First</option>
@@ -187,69 +216,126 @@ export default function BloodRequestsListPage() {
                         <th className="pb-3 pr-4">Required (Bags)</th>
                         <th className="pb-3 pr-4">Current Status</th>
                         <th className="pb-3 pr-4">Created Date</th>
-                        <th className="pb-3 text-right">Actions</th>
+                        <th className="pb-3 text-right">Workflow Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {requests.map((r) => (
-                        <tr key={r.id} className="hover:bg-gray-50/40">
-                          <td className="py-4 pr-4">
-                            <span className="h-9 w-9 rounded-xl bg-red-50 text-red-600 font-extrabold flex items-center justify-center border border-red-100 shadow-sm text-sm">
-                              {r.bloodType?.name || 'A+'}
-                            </span>
-                          </td>
-                          <td className="py-4 pr-4">
-                            <p className="font-bold text-gray-900 truncate max-w-[200px]">{r.hospitalName}</p>
-                            <span className="flex items-center gap-1 text-xs text-gray-400 truncate max-w-[200px] mt-0.5">
-                              <MapPin className="h-3 w-3 shrink-0" />
-                              <span>{r.hospitalAddress}</span>
-                            </span>
-                          </td>
-                          <td className="py-4 pr-4">
-                            <Badge
-                              variant={
-                                r.urgencyLevel === 'critical' || r.urgencyLevel === 'high'
-                                  ? 'critical'
-                                  : r.urgencyLevel === 'medium'
-                                  ? 'warning'
-                                  : 'success'
-                              }
-                            >
-                              {r.urgencyLevel}
-                            </Badge>
-                          </td>
-                          <td className="py-4 pr-4 text-gray-600 font-bold">{r.unitsRequired}</td>
-                          <td className="py-4 pr-4">
-                            <Badge
-                              variant={
-                                r.status === 'completed'
-                                  ? 'success'
-                                  : r.status === 'cancelled'
-                                  ? 'neutral'
-                                  : 'warning'
-                              }
-                            >
-                              {r.status}
-                            </Badge>
-                          </td>
-                          <td className="py-4 pr-4 text-xs text-gray-400">
-                            <span className="flex items-center gap-1.5 font-medium">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>{new Date(r.createdAt).toLocaleDateString()}</span>
-                            </span>
-                          </td>
-                          <td className="py-4 text-right">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => router.push(`/blood-requests/${r.id}`)}
-                              className="font-bold"
-                            >
-                              View Details
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
+                      {requests.map((r) => {
+                        const canCancel = r.status === 'pending' || r.status === 'matched';
+                        const canMatch = r.status === 'pending';
+                        const canComplete = r.status === 'matched';
+
+                        return (
+                          <tr key={r.id} className="hover:bg-gray-50/40">
+                            <td className="py-4 pr-4">
+                              <span className="h-9 w-9 rounded-xl bg-red-50 text-red-600 font-extrabold flex items-center justify-center border border-red-100 shadow-sm text-sm">
+                                {r.bloodType?.name || 'A+'}
+                              </span>
+                            </td>
+                            <td className="py-4 pr-4">
+                              <p className="font-bold text-gray-900 truncate max-w-[200px]">{r.hospitalName}</p>
+                              <span className="flex items-center gap-1 text-xs text-gray-400 truncate max-w-[200px] mt-0.5 font-semibold">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span>{r.hospitalAddress}</span>
+                              </span>
+                            </td>
+                            <td className="py-4 pr-4">
+                              <Badge
+                                variant={
+                                  r.urgencyLevel === 'critical' || r.urgencyLevel === 'high'
+                                    ? 'critical'
+                                    : r.urgencyLevel === 'medium'
+                                    ? 'warning'
+                                    : 'success'
+                                }
+                              >
+                                {r.urgencyLevel}
+                              </Badge>
+                            </td>
+                            <td className="py-4 pr-4 text-gray-600 font-extrabold">{r.unitsRequired}</td>
+                            <td className="py-4 pr-4">
+                              <Badge
+                                variant={
+                                  r.status === 'completed'
+                                    ? 'success'
+                                    : r.status === 'cancelled'
+                                    ? 'neutral'
+                                    : r.status === 'matched'
+                                    ? 'info'
+                                    : 'warning'
+                                }
+                              >
+                                {r.status}
+                              </Badge>
+                            </td>
+                            <td className="py-4 pr-4 text-xs text-gray-400">
+                              <span className="flex items-center gap-1.5 font-medium">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>{new Date(r.createdAt).toLocaleDateString()}</span>
+                              </span>
+                            </td>
+                            <td className="py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => router.push(`/blood-requests/${r.id}`)}
+                                  className="h-8 px-2.5 flex items-center gap-1 font-bold"
+                                  title="View compatibility matching and coordinates detail map"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  <span className="hidden lg:inline">View</span>
+                                </Button>
+
+                                {/* Match action */}
+                                {canMatch && (isSeeker || isAdmin) && (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleStatusTransition(r.id, 'matched')}
+                                    disabled={updatingId === r.id}
+                                    className="h-8 px-2.5 flex items-center gap-1 font-bold bg-blue-600 hover:bg-blue-700"
+                                    title="Mark compatible donors as successfully matched"
+                                  >
+                                    <Users className="h-3.5 w-3.5" />
+                                    <span className="hidden lg:inline">Match</span>
+                                  </Button>
+                                )}
+
+                                {/* Complete action */}
+                                {canComplete && (isSeeker || isAdmin) && (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleStatusTransition(r.id, 'completed')}
+                                    disabled={updatingId === r.id}
+                                    className="h-8 px-2.5 flex items-center gap-1 font-bold bg-green-600 hover:bg-green-700"
+                                    title="Complete blood donation and delivery lifecycle"
+                                  >
+                                    <CheckCircle className="h-3.5 w-3.5" />
+                                    <span className="hidden lg:inline">Complete</span>
+                                  </Button>
+                                )}
+
+                                {/* Cancel action */}
+                                {canCancel && (isSeeker || isAdmin) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStatusTransition(r.id, 'cancelled')}
+                                    disabled={updatingId === r.id}
+                                    className="h-8 px-2.5 flex items-center gap-1 font-semibold text-rose-600 hover:bg-rose-50 border-rose-200"
+                                    title="Cancel emergency blood request"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    <span className="hidden lg:inline">Cancel</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

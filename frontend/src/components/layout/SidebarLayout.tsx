@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   FileHeart,
-  PlusCircle,
   Search,
   Bell,
   User,
@@ -15,6 +14,7 @@ import {
   Menu,
   X,
   Activity,
+  ChevronRight,
 } from 'lucide-react';
 import { notificationsService } from '@/api/notifications';
 
@@ -49,114 +49,143 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // Define navigation links based on user role
+  // Define navigation groups and items based on role
   const isDonor = user?.role === 'donor';
   const isSeeker = user?.role === 'seeker';
   const isAdmin = user?.role === 'admin';
 
-  const navItems = [
+  const menuGroups = [
     {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-      show: true,
+      title: 'Main Console',
+      items: [
+        {
+          name: 'Dashboard',
+          href: '/dashboard',
+          icon: LayoutDashboard,
+          show: true,
+        },
+        {
+          name: 'Notifications',
+          href: '/notifications',
+          icon: Bell,
+          show: true,
+          badge: unreadCount > 0 ? unreadCount : undefined,
+        },
+      ],
     },
     {
-      name: 'Donor Profile',
-      href: '/donor-profile',
-      icon: Heart,
-      show: isDonor,
+      title: 'Services & Matching',
+      items: [
+        {
+          name: 'Blood Requests',
+          href: '/blood-requests',
+          icon: FileHeart,
+          show: true,
+        },
+        {
+          name: 'Find Donors',
+          href: '/donors/search',
+          icon: Search,
+          show: isSeeker || isAdmin || isDonor,
+        },
+      ],
     },
     {
-      name: 'Blood Requests',
-      href: '/blood-requests',
-      icon: FileHeart,
-      show: true,
-    },
-    {
-      name: 'New Request',
-      href: '/blood-requests/new',
-      icon: PlusCircle,
-      show: isSeeker || isAdmin,
-    },
-    {
-      name: 'Find Donors',
-      href: '/donors/search',
-      icon: Search,
-      show: isSeeker || isAdmin || isDonor,
-    },
-    {
-      name: 'Notifications',
-      href: '/notifications',
-      icon: Bell,
-      show: true,
-      badge: unreadCount > 0 ? unreadCount : undefined,
-    },
-    {
-      name: 'My Profile',
-      href: '/profile',
-      icon: User,
-      show: true,
+      title: 'Personal Info',
+      items: [
+        {
+          name: 'Donor Profile',
+          href: '/donor-profile',
+          icon: Heart,
+          show: isDonor,
+        },
+        {
+          name: 'My Profile',
+          href: '/profile',
+          icon: User,
+          show: true,
+        },
+      ],
     },
   ];
 
-  const visibleNavItems = navItems.filter((item) => item.show);
+  const renderNavGroup = (group: typeof menuGroups[0], onClickItem?: () => void) => {
+    const visibleItems = group.items.filter((item) => item.show);
+    if (visibleItems.length === 0) return null;
+
+    return (
+      <div key={group.title} className="space-y-2 pt-4 first:pt-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4">
+          {group.title}
+        </p>
+        <div className="space-y-1">
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+            return (
+              <button
+                key={item.name}
+                onClick={() => {
+                  router.push(item.href);
+                  if (onClickItem) onClickItem();
+                }}
+                className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+                  active
+                    ? 'bg-red-50 text-red-600 shadow-sm border-l-4 border-red-500 rounded-l-none'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4.5 w-4.5 shrink-0 ${active ? 'text-red-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                  <span>{item.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {item.badge && (
+                    <span className="bg-rose-500 text-white text-[10px] font-extrabold h-4.5 min-w-4.5 px-1.5 flex items-center justify-center rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                  {active && <ChevronRight className="h-3 w-3 text-red-500" />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50/50 text-gray-900 font-sans">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col bg-white border-r border-gray-100 h-full">
-        <div className="flex items-center gap-2 px-6 h-16 border-b border-gray-50">
+      <aside className="hidden md:flex md:w-64 md:flex-col bg-white border-r border-gray-100 h-full shrink-0">
+        <div className="flex items-center gap-2 px-6 h-16 border-b border-gray-50 shrink-0">
           <Activity className="h-6 w-6 text-red-600 animate-pulse" />
           <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-red-600 to-rose-500 bg-clip-text text-transparent">
             Nabz Platform
           </span>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <button
-                key={item.name}
-                onClick={() => router.push(item.href)}
-                className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
-                  active
-                    ? 'bg-red-50 text-red-600 shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`h-5 w-5 ${active ? 'text-red-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                  <span>{item.name}</span>
-                </div>
-                {item.badge && (
-                  <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+          {menuGroups.map((group) => renderNavGroup(group))}
         </nav>
 
         {/* User profile bottom card */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/40">
+        <div className="p-4 border-t border-gray-100 bg-gray-50/40 shrink-0">
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="h-10 w-10 rounded-full bg-red-100 text-red-600 font-bold flex items-center justify-center border border-red-200">
+            <div className="h-10 w-10 rounded-full bg-red-100 text-red-600 font-extrabold flex items-center justify-center border border-red-200 shadow-sm text-sm shrink-0">
               {user?.name?.slice(0, 2).toUpperCase() || 'US'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
-              <p className="text-xs font-medium text-gray-500 truncate uppercase tracking-wider">{user?.role}</p>
+              <p className="text-sm font-extrabold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-[10px] font-bold text-gray-500 truncate uppercase tracking-widest">{user?.role}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4.5 w-4.5" />
             <span>Sign Out</span>
           </button>
         </div>
@@ -172,7 +201,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           />
 
           <div className="relative flex flex-col w-64 max-w-xs bg-white h-full border-r border-gray-100 z-50 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between px-6 h-16 border-b border-gray-50">
+            <div className="flex items-center justify-between px-6 h-16 border-b border-gray-50 shrink-0">
               <div className="flex items-center gap-2">
                 <Activity className="h-6 w-6 text-red-600 animate-pulse" />
                 <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-red-600 to-rose-500 bg-clip-text text-transparent">
@@ -187,49 +216,25 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </button>
             </div>
 
-            <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto" onClick={() => setMobileOpen(false)}>
-              {visibleNavItems.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href || pathname.startsWith(item.href + '/');
-                return (
-                  <button
-                    key={item.name}
-                    onClick={() => router.push(item.href)}
-                    className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                      active
-                        ? 'bg-red-50 text-red-600'
-                        : 'text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`h-5 w-5 ${active ? 'text-red-600' : 'text-gray-400'}`} />
-                      <span>{item.name}</span>
-                    </div>
-                    {item.badge && (
-                      <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+              {menuGroups.map((group) => renderNavGroup(group, () => setMobileOpen(false)))}
             </nav>
 
-            <div className="p-4 border-t border-gray-100 bg-gray-50/40">
+            <div className="p-4 border-t border-gray-100 bg-gray-50/40 shrink-0">
               <div className="flex items-center gap-3 mb-3 px-2">
-                <div className="h-10 w-10 rounded-full bg-red-100 text-red-600 font-bold flex items-center justify-center border border-red-200">
+                <div className="h-10 w-10 rounded-full bg-red-100 text-red-600 font-extrabold flex items-center justify-center border border-red-200 text-sm shrink-0">
                   {user?.name?.slice(0, 2).toUpperCase() || 'US'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
-                  <p className="text-xs font-medium text-gray-400 truncate uppercase tracking-wider">{user?.role}</p>
+                  <p className="text-sm font-extrabold text-gray-900 truncate">{user?.name}</p>
+                  <p className="text-[10px] font-bold text-gray-500 truncate uppercase tracking-widest">{user?.role}</p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4.5 w-4.5" />
                 <span>Sign Out</span>
               </button>
             </div>
@@ -256,7 +261,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Quick stats indicator */}
+            {/* Quick availability stats indicator */}
             {isDonor && (
               <span
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
@@ -276,7 +281,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 h-2 w-2 bg-rose-500 rounded-full" />
+                <span className="absolute top-1 right-1 h-2 w-2 bg-rose-500 rounded-full animate-pulse" />
               )}
             </button>
 
@@ -286,7 +291,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               onClick={() => router.push('/profile')}
               className="flex items-center gap-2 hover:opacity-85 transition-opacity"
             >
-              <div className="h-8 w-8 rounded-full bg-red-50 text-red-600 border border-red-100 font-bold flex items-center justify-center text-xs">
+              <div className="h-8 w-8 rounded-full bg-red-50 text-red-600 border border-red-100 font-extrabold flex items-center justify-center text-xs">
                 {user?.name?.slice(0, 2).toUpperCase() || 'US'}
               </div>
               <span className="hidden sm:inline text-sm font-semibold text-gray-700">{user?.name}</span>
