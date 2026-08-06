@@ -6,17 +6,32 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   FileHeart,
+  Users,
   Search,
-  Bell,
-  User,
+  Activity,
   Heart,
+  Settings,
+  User,
+  Bell,
   LogOut,
   Menu,
   X,
-  Activity,
   ChevronRight,
 } from 'lucide-react';
 import { notificationsService } from '@/api/notifications';
+
+interface MenuItem {
+  name: string;
+  href: string;
+  icon: any;
+  show: boolean;
+  badge?: number | string;
+}
+
+interface MenuGroup {
+  title: string;
+  items: MenuItem[];
+}
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
@@ -49,14 +64,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // Define navigation groups and items based on role
-  const isDonor = user?.role === 'donor';
-  const isSeeker = user?.role === 'seeker';
-  const isAdmin = user?.role === 'admin';
-
-  const menuGroups = [
+  const menuGroups: MenuGroup[] = [
     {
-      title: 'Main Console',
+      title: 'Navigation & Hub Console',
       items: [
         {
           name: 'Dashboard',
@@ -65,51 +75,40 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           show: true,
         },
         {
-          name: 'Notifications',
-          href: '/notifications',
-          icon: Bell,
-          show: true,
-          badge: unreadCount > 0 ? unreadCount : undefined,
-        },
-      ],
-    },
-    {
-      title: 'Services & Matching',
-      items: [
-        {
           name: 'Blood Requests',
           href: '/blood-requests',
           icon: FileHeart,
           show: true,
         },
         {
-          name: 'Find Donors',
-          href: '/donors/search',
-          icon: Search,
-          show: isSeeker || isAdmin || isDonor,
+          name: 'Donors',
+          href: '/donors',
+          icon: Users,
+          show: true,
         },
         {
-          name: 'Hospitals Directory',
+          name: 'Find Donor',
+          href: '/donors/search',
+          icon: Search,
+          show: true,
+        },
+        {
+          name: 'Hospital Directory',
           href: '/hospitals',
           icon: Activity,
           show: true,
         },
         {
-          name: 'Stock Reserves',
-          href: '/blood-inventory',
+          name: 'Blood Bank Directory',
+          href: '/blood-banks',
           icon: Heart,
           show: true,
         },
-      ],
-    },
-    {
-      title: 'Personal Info',
-      items: [
         {
-          name: 'Donor Profile',
-          href: '/donor-profile',
-          icon: Heart,
-          show: isDonor,
+          name: 'Settings',
+          href: '/settings',
+          icon: Settings,
+          show: true,
         },
         {
           name: 'My Profile',
@@ -119,9 +118,21 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         },
       ],
     },
+    {
+      title: 'System Alerts',
+      items: [
+        {
+          name: 'Notifications',
+          href: '/notifications',
+          icon: Bell,
+          show: true,
+          badge: unreadCount > 0 ? unreadCount : undefined,
+        },
+      ],
+    },
   ];
 
-  const renderNavGroup = (group: typeof menuGroups[0], onClickItem?: () => void) => {
+  const renderNavGroup = (group: MenuGroup, onClickItem?: () => void) => {
     const visibleItems = group.items.filter((item) => item.show);
     if (visibleItems.length === 0) return null;
 
@@ -171,10 +182,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50/50 text-gray-900 font-sans">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-white border-r border-gray-100 h-full shrink-0">
-        <div className="flex items-center gap-2 px-6 h-16 border-b border-gray-50 shrink-0">
+        <div className="flex items-center gap-2 px-6 h-16 border-b border-gray-100 shrink-0">
           <Activity className="h-6 w-6 text-red-600 animate-pulse" />
           <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-red-600 to-rose-500 bg-clip-text text-transparent">
-            Nabz Platform
+            Nabz Hub
           </span>
         </div>
 
@@ -213,11 +224,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           />
 
           <div className="relative flex flex-col w-64 max-w-xs bg-white h-full border-r border-gray-100 z-50 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between px-6 h-16 border-b border-gray-50 shrink-0">
+            <div className="flex items-center justify-between px-6 h-16 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2">
                 <Activity className="h-6 w-6 text-red-600 animate-pulse" />
                 <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-red-600 to-rose-500 bg-clip-text text-transparent">
-                  Nabz Platform
+                  Nabz Hub
                 </span>
               </div>
               <button
@@ -274,7 +285,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-4">
             {/* Quick availability stats indicator */}
-            {isDonor && (
+            {user?.role === 'donor' && (
               <span
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                   user?.isAvailable

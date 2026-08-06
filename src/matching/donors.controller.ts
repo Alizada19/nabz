@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DonorMatchingService } from './donor-matching.service';
 import { NearbyDonorsQueryDto } from './dto/nearby-donors-query.dto';
@@ -42,5 +42,42 @@ export class DonorsController {
         },
       },
     };
+  }
+
+  // --- CRUD Donors Management Endpoints ---
+
+  @Get()
+  @ApiOperation({ summary: 'List individual blood donors with search and filters' })
+  async listDonors(@Query() query: any) {
+    const data = await this.donorMatchingService.listDonors(query);
+    return { message: 'Donors list retrieved successfully', data };
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Register a new individual donor' })
+  async registerDonor(@Body() body: any) {
+    const data = await this.donorMatchingService.registerDonor(body);
+    return { message: 'Donor registered successfully', data };
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get details of an individual donor' })
+  async findOne(@Param('id') id: string) {
+    const data = await this.donorMatchingService.findDonorById(id);
+    return { message: 'Donor details retrieved successfully', data };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Edit an individual donor details' })
+  async update(@Param('id') id: string, @Body() body: any) {
+    const data = await this.donorMatchingService.updateDonor(id, body);
+    return { message: 'Donor updated successfully', data };
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete an individual donor' })
+  async remove(@Param('id') id: string) {
+    await this.donorMatchingService.deleteDonor(id);
+    return { message: 'Donor deleted successfully' };
   }
 }

@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BloodRequestsService } from './blood-requests.service';
 import { CreateBloodRequestDto } from './dto/create-blood-request.dto';
 import { QueryBloodRequestDto } from './dto/query-blood-request.dto';
 import { UpdateBloodRequestStatusDto } from './dto/update-status.dto';
+import { UpdateBloodRequestDto } from './dto/update-blood-request.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -31,6 +32,13 @@ export class BloodRequestsController {
     return { message: 'Blood request created successfully', data };
   }
 
+  @Get()
+  @ApiOperation({ summary: 'List all blood requests (paginated with filters)' })
+  async findAll(@Query() query: QueryBloodRequestDto) {
+    const data = await this.bloodRequestsService.findAll(query);
+    return { message: 'All blood requests retrieved successfully', data };
+  }
+
   @Get('my')
   @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
   @ApiOperation({ summary: "List the current seeker's blood requests (paginated)" })
@@ -50,6 +58,29 @@ export class BloodRequestsController {
   ) {
     const data = await this.bloodRequestsService.findOne(id, user.id, user.role);
     return { message: 'Blood request retrieved successfully', data };
+  }
+
+  @Patch(':id')
+  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
+  @ApiOperation({ summary: 'Update/Edit blood request details' })
+  async update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateBloodRequestDto,
+  ) {
+    const data = await this.bloodRequestsService.update(id, user.id, user.role, dto);
+    return { message: 'Blood request updated successfully', data };
+  }
+
+  @Delete(':id')
+  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
+  @ApiOperation({ summary: 'Delete blood request' })
+  async remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    await this.bloodRequestsService.remove(id, user.id, user.role);
+    return { message: 'Blood request deleted successfully' };
   }
 
   @Patch(':id/status')
