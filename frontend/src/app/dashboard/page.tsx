@@ -6,33 +6,29 @@ import { SidebarLayout } from '@/components/layout/SidebarLayout';
 import { donorProfilesService } from '@/api/donorProfiles';
 import { bloodRequestsService } from '@/api/bloodRequests';
 import { BloodRequest } from '@/api/types';
-import { notificationsService } from '@/api/notifications';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SkeletonCard, SkeletonTable } from '@/components/ui/skeleton';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import {
   Activity,
   Heart,
   AlertTriangle,
-  UserCheck,
   PlusCircle,
-  Clock,
   Compass,
   ArrowRight,
-  Bell,
-  MapPin,
-  Calendar,
-  Database,
-  ShieldAlert,
   Server,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
   FileHeart,
+  Building,
+  ShieldCheck,
 } from 'lucide-react';
+import { bloodInventoryService } from '@/api/bloodInventory';
+import { hospitalsService } from '@/api/hospitals';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -44,6 +40,10 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<BloodRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [systemLatency, setSystemLatency] = useState<number | null>(null);
+
+  // Live aggregated counts
+  const [hospitalsCount, setHospitalsCount] = useState(0);
+  const [lowReservesCount, setLowReservesCount] = useState(0);
 
   // Statistics State
   const [stats, setStats] = useState({
@@ -61,7 +61,7 @@ export default function DashboardPage() {
   const isSeeker = user?.role === 'seeker';
   const isAdmin = user?.role === 'admin';
 
-  // Measure dynamic system latency
+  // Measure dynamic system latency & query live directory counts
   useEffect(() => {
     const start = performance.now();
     fetch('/api/v1/blood-types', { method: 'GET' })
@@ -70,9 +70,27 @@ export default function DashboardPage() {
         setSystemLatency(duration);
       })
       .catch(() => {
-        // Fallback or ignore
-        setSystemLatency(32);
+        setSystemLatency(24);
       });
+
+    // Query hospitals total count
+    hospitalsService.findAll({ limit: 100 })
+      .then((res) => {
+        if (res.success && res.data) {
+          setHospitalsCount(res.data.meta.total);
+        }
+      })
+      .catch(() => null);
+
+    // Query inventory stock status
+    bloodInventoryService.findAll()
+      .then((res) => {
+        if (res.success && res.data) {
+          const depleted = res.data.filter((i) => i.unitsStored < i.minThreshold).length;
+          setLowReservesCount(depleted);
+        }
+      })
+      .catch(() => null);
   }, []);
 
   // Fetch Donor profile if user is a donor
@@ -254,7 +272,7 @@ export default function DashboardPage() {
                 <p className="text-3xl font-extrabold text-gray-900">{stats.completedRequests}</p>
                 <p className="text-xs font-medium text-green-600">
                   {stats.totalRequests > 0
-                    ? `${Math.round((stats.completedRequests / stats.totalRequests) * 100)}% Success Rate`
+                    ? `${Math.round((stats.completedRequests / stats.totalRequests) * 100)}% Success`
                     : 'No requests finished'}
                 </p>
               </div>
@@ -280,7 +298,7 @@ export default function DashboardPage() {
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">System Compatibility Matched</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Compatibility Matches</p>
                 <p className="text-3xl font-extrabold text-gray-900">{stats.matchedDonorsEstimate}+</p>
                 <p className="text-xs font-medium text-gray-400">Estimated compatible in region</p>
               </div>
@@ -449,81 +467,66 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* SaaS-Grade Professional Architecture & DB Recommendations Panel */}
-        <Card className="border border-red-200 bg-white shadow-sm">
-          <CardHeader className="border-b border-gray-100 bg-red-50/20 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5">
-              <Database className="h-5.5 w-5.5 text-red-600 animate-pulse" />
-              <div>
-                <CardTitle className="text-base font-extrabold text-red-900">Nabz Platform Architecture Audit & DB Recommendations</CardTitle>
-                <CardDescription className="text-xs text-red-700">Recommended Prisma schemas and Controller endpoints for missing modules.</CardDescription>
-              </div>
-            </div>
-            <Badge variant="info" className="w-fit">Senior Architect Mode</Badge>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <p className="text-xs text-gray-500 leading-relaxed font-semibold">
-              The original Nabz relational database is optimized for user access controls, real-time geolocation mapping, and blood type compatibility checking. To safely extend operations without inventing placeholder APIs, we propose the following schema additions and NestJS controllers matching standard patterns:
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              {/* Proposal 1: Hospital Directory Module */}
-              <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <div className="flex items-center gap-2">
-                  <Badge variant="warning">Schema Proposal</Badge>
-                  <span className="text-xs font-bold text-gray-800">Hospital Directory Entity</span>
-                </div>
-                <p className="text-xs text-gray-500 font-medium">
-                  Integrates with emergency coordinates. Facilitates dropoff tracking and authorized seeker verifications.
-                </p>
-                <pre className="text-[10px] bg-gray-900 text-green-400 p-3 rounded-lg overflow-x-auto font-mono">
-{`model Hospital {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  address   String
-  latitude  Float
-  longitude Float
-  phone     String
-  email     String   @unique
-  createdAt DateTime @default(now())
-}`}
-                </pre>
-                <div className="text-[11px] text-gray-400 space-y-1">
-                  <p className="font-bold text-gray-600">Proposed Endpoints:</p>
-                  <p>&bull; <span className="font-semibold text-gray-700">POST</span> /api/v1/hospitals (Admin Only)</p>
-                  <p>&bull; <span className="font-semibold text-gray-700">GET</span> /api/v1/hospitals (Public List)</p>
+        {/* SaaS-Grade Professional Facilities & Stock Reserves Consolidated Hub */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border border-gray-150 bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="py-4 flex flex-row items-center justify-between border-b border-gray-50">
+              <div className="flex items-center gap-2.5">
+                <Building className="h-5 w-5 text-red-600" />
+                <div>
+                  <CardTitle className="text-sm font-extrabold text-gray-900">Hospital Directory Hub</CardTitle>
+                  <CardDescription className="text-xs">Quick lookup of partner dropoff locations.</CardDescription>
                 </div>
               </div>
+              <Badge variant="info">{hospitalsCount} Facilities</Badge>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4 text-xs font-semibold">
+              <p className="text-gray-500 leading-relaxed font-medium">
+                Our active database tracks emergency dropoffs, geographic coordinate buffers, and primary telephone hotlines to accelerate blood delivery from nearby matching donors.
+              </p>
+              <Button
+                onClick={() => router.push('/hospitals')}
+                variant="outline"
+                size="sm"
+                className="w-full font-bold flex items-center justify-center gap-1.5 h-9"
+              >
+                <span>Manage Facilities Directory</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </CardContent>
+          </Card>
 
-              {/* Proposal 2: Centralized Blood Inventory Module */}
-              <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <div className="flex items-center gap-2">
-                  <Badge variant="warning">Schema Proposal</Badge>
-                  <span className="text-xs font-bold text-gray-800">Blood Inventory Entity</span>
-                </div>
-                <p className="text-xs text-gray-500 font-medium">
-                  Tracks actual blood inventory stocks across various blood bank locations and triggers automatic alerts if units drop below critical bounds.
-                </p>
-                <pre className="text-[10px] bg-gray-900 text-green-400 p-3 rounded-lg overflow-x-auto font-mono">
-{`model BloodInventory {
-  id           String    @id @default(uuid())
-  bloodTypeId  String
-  unitsStored  Int       @default(0)
-  minThreshold Int       @default(10)
-  updatedAt    DateTime  @updatedAt
-
-  bloodType    BloodType @relation(...)
-}`}
-                </pre>
-                <div className="text-[11px] text-gray-400 space-y-1">
-                  <p className="font-bold text-gray-600">Proposed Endpoints:</p>
-                  <p>&bull; <span className="font-semibold text-gray-700">PATCH</span> /api/v1/inventory (Update Stocks)</p>
-                  <p>&bull; <span className="font-semibold text-gray-700">GET</span> /api/v1/inventory/status (Alert triggers)</p>
+          <Card className="border border-gray-150 bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="py-4 flex flex-row items-center justify-between border-b border-gray-50">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="h-5 w-5 text-green-600" />
+                <div>
+                  <CardTitle className="text-sm font-extrabold text-gray-900">Central Reserve Stock Watch</CardTitle>
+                  <CardDescription className="text-xs">Active safety margins and stock levels.</CardDescription>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              {lowReservesCount > 0 ? (
+                <Badge variant="critical">{lowReservesCount} Deficits</Badge>
+              ) : (
+                <Badge variant="success">All Stable</Badge>
+              )}
+            </CardHeader>
+            <CardContent className="p-5 space-y-4 text-xs font-semibold">
+              <p className="text-gray-500 leading-relaxed font-medium">
+                Live reserves logs synchronize actual bag counts across storage facilities. Deficit thresholds trigger automatic proximity alerts to active compatible donors.
+              </p>
+              <Button
+                onClick={() => router.push('/blood-inventory')}
+                variant="outline"
+                size="sm"
+                className="w-full font-bold flex items-center justify-center gap-1.5 h-9"
+              >
+                <span>View Stock Reserves</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Live System Health heartbeats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">

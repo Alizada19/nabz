@@ -88,6 +88,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           icon: Search,
           show: isSeeker || isAdmin || isDonor,
         },
+        {
+          name: 'Hospitals Directory',
+          href: '/hospitals',
+          icon: Activity,
+          show: true,
+        },
+        {
+          name: 'Stock Reserves',
+          href: '/blood-inventory',
+          icon: Heart,
+          show: true,
+        },
       ],
     },
     {

@@ -57,6 +57,7 @@ model BloodType {
 
   donorProfiles  DonorProfile[]
   bloodRequests  BloodRequest[]
+  bloodInventory BloodInventory?
 
   @@map("blood_types")
 }
@@ -113,4 +114,31 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+model Hospital {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  address   String
+  latitude  Float
+  longitude Float
+  phone     String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hospitals")
+}
+
+model BloodInventory {
+  id           String    @id @default(uuid())
+  bloodTypeId  String    @unique
+  unitsStored  Int       @default(0)
+  minThreshold Int       @default(10)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bloodType    BloodType @relation(fields: [bloodTypeId], references: [id])
+
+  @@map("blood_inventories")
 }

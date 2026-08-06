@@ -11,6 +11,8 @@ import { DonorProfilesModule } from './donor-profiles/donor-profiles.module';
 import { BloodRequestsModule } from './blood-requests/blood-requests.module';
 import { MatchingModule } from './matching/matching.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { HospitalsModule } from './hospitals/hospitals.module';
+import { BloodInventoryModule } from './blood-inventory/blood-inventory.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     MatchingModule,
     BloodRequestsModule,
     NotificationsModule,
+    HospitalsModule,
+    BloodInventoryModule,
   ],
   providers: [
     // Global API rate limiting (throttling) on top of JWT/Roles guards
