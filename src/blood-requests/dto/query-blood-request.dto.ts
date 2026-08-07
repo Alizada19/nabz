@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { RequestStatus, UrgencyLevel } from '@prisma/client';
+import { RequestStatus, UrgencyLevel, RequestType } from '@prisma/client';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
@@ -29,8 +29,8 @@ export class QueryBloodRequestDto extends PaginationDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'seeker, hospital, blood_bank' })
+  @ApiPropertyOptional({ enum: RequestType })
   @IsOptional()
-  @IsString()
-  requesterType?: string;
+  @IsEnum(RequestType)
+  requestType?: RequestType;
 }

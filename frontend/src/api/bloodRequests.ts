@@ -2,24 +2,36 @@ import { client } from './client';
 import { ApiResponse, BloodRequest, PaginatedResult } from './types';
 
 export interface CreateBloodRequestDto {
+  requestType?: 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK';
   bloodType: string;
-  hospitalName: string;
-  hospitalAddress: string;
-  latitude: number;
-  longitude: number;
-  unitsRequired: number;
+  hospitalName?: string | null;
+  hospitalAddress?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  unitsRequired?: number | null;
   urgencyLevel?: 'low' | 'medium' | 'high' | 'critical';
+  requesterPhone?: string | null;
+  preferredHospital?: string | null;
+  additionalNotes?: string | null;
+  coordinatorName?: string | null;
+  coordinatorContact?: string | null;
 }
 
 export interface UpdateBloodRequestDto {
+  requestType?: 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK';
   bloodType?: string;
-  hospitalName?: string;
-  hospitalAddress?: string;
-  latitude?: number;
-  longitude?: number;
-  unitsRequired?: number;
+  hospitalName?: string | null;
+  hospitalAddress?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  unitsRequired?: number | null;
   urgencyLevel?: 'low' | 'medium' | 'high' | 'critical';
   status?: string;
+  requesterPhone?: string | null;
+  preferredHospital?: string | null;
+  additionalNotes?: string | null;
+  coordinatorName?: string | null;
+  coordinatorContact?: string | null;
 }
 
 export interface QueryBloodRequestDto {
@@ -27,7 +39,7 @@ export interface QueryBloodRequestDto {
   urgencyLevel?: string;
   bloodType?: string;
   location?: string;
-  requesterType?: string;
+  requestType?: string;
   page?: number;
   limit?: number;
   sortBy?: string;

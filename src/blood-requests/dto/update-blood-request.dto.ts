@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { UrgencyLevel, RequestStatus } from '@prisma/client';
+import { UrgencyLevel, RequestStatus, RequestType } from '@prisma/client';
 import {
   IsEnum,
   IsInt,
@@ -11,6 +11,11 @@ import {
 } from 'class-validator';
 
 export class UpdateBloodRequestDto {
+  @ApiPropertyOptional({ enum: RequestType })
+  @IsOptional()
+  @IsEnum(RequestType)
+  requestType?: RequestType;
+
   @ApiPropertyOptional({ example: 'A+' })
   @IsString()
   @IsOptional()
@@ -51,4 +56,29 @@ export class UpdateBloodRequestDto {
   @IsOptional()
   @IsEnum(RequestStatus)
   status?: RequestStatus;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  requesterPhone?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  preferredHospital?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  additionalNotes?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  coordinatorName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  coordinatorContact?: string;
 }

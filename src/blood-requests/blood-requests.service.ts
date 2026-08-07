@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { RequestStatus, Role } from '@prisma/client';
+import { RequestStatus, Role, RequestType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { BloodTypesService } from '../blood-types/blood-types.service';
 import { DonorMatchingService } from '../matching/donor-matching.service';
@@ -42,12 +42,18 @@ export class BloodRequestsService {
       data: {
         seekerId,
         bloodTypeId: bloodType.id,
-        hospitalName: dto.hospitalName,
-        hospitalAddress: dto.hospitalAddress,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        unitsRequired: dto.unitsRequired,
-        urgencyLevel: dto.urgencyLevel,
+        requestType: dto.requestType || 'INDIVIDUAL',
+        hospitalName: dto.hospitalName || null,
+        hospitalAddress: dto.hospitalAddress || null,
+        latitude: dto.latitude !== undefined ? dto.latitude : null,
+        longitude: dto.longitude !== undefined ? dto.longitude : null,
+        unitsRequired: dto.unitsRequired !== undefined ? dto.unitsRequired : null,
+        urgencyLevel: dto.urgencyLevel || 'medium',
+        requesterPhone: dto.requesterPhone || null,
+        preferredHospital: dto.preferredHospital || null,
+        additionalNotes: dto.additionalNotes || null,
+        coordinatorName: dto.coordinatorName || null,
+        coordinatorContact: dto.coordinatorContact || null,
       },
       include: {
         bloodType: true,
@@ -61,14 +67,16 @@ export class BloodRequestsService {
       },
     });
 
-    // Fire-and-forget matching + notification workflow. Errors here should
-    // never fail the request-creation response to the seeker.
-    this.matchAndNotify(request.id, bloodType.name, dto.latitude, dto.longitude).catch(
-      (err) =>
-        this.logger.error(
-          `Matching/notification workflow failed for request ${request.id}: ${err.message}`,
-        ),
-    );
+    // Fire-and-forget matching + notification workflow if coordinates are specified.
+    // Errors here should never fail the request-creation response to the seeker.
+    if (dto.latitude !== undefined && dto.longitude !== undefined) {
+      this.matchAndNotify(request.id, bloodType.name, dto.latitude, dto.longitude).catch(
+        (err) =>
+          this.logger.error(
+            `Matching/notification workflow failed for request ${request.id}: ${err.message}`,
+          ),
+      );
+    }
 
     return request;
   }
@@ -99,7 +107,7 @@ export class BloodRequestsService {
   }
 
   async findAll(query: QueryBloodRequestDto) {
-    const { skip, limit = 10, status, urgencyLevel, bloodType, location, search, requesterType } = query;
+    const { skip, limit = 10, status, urgencyLevel, bloodType, location, search, requestType } = query;
 
     const where: any = {};
 
@@ -109,6 +117,10 @@ export class BloodRequestsService {
 
     if (urgencyLevel) {
       where.urgencyLevel = urgencyLevel;
+    }
+
+    if (requestType) {
+      where.requestType = requestType;
     }
 
     if (bloodType) {
@@ -124,6 +136,7 @@ export class BloodRequestsService {
       where.OR = [
         { hospitalAddress: { contains: location, mode: 'insensitive' } },
         { hospitalName: { contains: location, mode: 'insensitive' } },
+        { preferredHospital: { contains: location, mode: 'insensitive' } },
       ];
     }
 
@@ -131,14 +144,10 @@ export class BloodRequestsService {
       where.OR = [
         { hospitalName: { contains: search, mode: 'insensitive' } },
         { hospitalAddress: { contains: search, mode: 'insensitive' } },
+        { preferredHospital: { contains: search, mode: 'insensitive' } },
         { seeker: { name: { contains: search, mode: 'insensitive' } } },
+        { additionalNotes: { contains: search, mode: 'insensitive' } },
       ];
-    }
-
-    if (requesterType) {
-      where.seeker = {
-        role: requesterType,
-      };
     }
 
     const [items, total] = await Promise.all([
@@ -257,6 +266,7 @@ export class BloodRequestsService {
       where: { id },
       data: {
         bloodTypeId,
+        requestType: dto.requestType !== undefined ? dto.requestType : undefined,
         hospitalName: dto.hospitalName !== undefined ? dto.hospitalName : undefined,
         hospitalAddress: dto.hospitalAddress !== undefined ? dto.hospitalAddress : undefined,
         latitude: dto.latitude !== undefined ? dto.latitude : undefined,
@@ -264,6 +274,11 @@ export class BloodRequestsService {
         unitsRequired: dto.unitsRequired !== undefined ? dto.unitsRequired : undefined,
         urgencyLevel: dto.urgencyLevel !== undefined ? dto.urgencyLevel : undefined,
         status: dto.status !== undefined ? dto.status : undefined,
+        requesterPhone: dto.requesterPhone !== undefined ? dto.requesterPhone : undefined,
+        preferredHospital: dto.preferredHospital !== undefined ? dto.preferredHospital : undefined,
+        additionalNotes: dto.additionalNotes !== undefined ? dto.additionalNotes : undefined,
+        coordinatorName: dto.coordinatorName !== undefined ? dto.coordinatorName : undefined,
+        coordinatorContact: dto.coordinatorContact !== undefined ? dto.coordinatorContact : undefined,
       },
       include: {
         bloodType: true,

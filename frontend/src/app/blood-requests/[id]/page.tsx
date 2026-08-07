@@ -23,6 +23,10 @@ import {
   ChevronLeft,
   XCircle,
   CheckCircle2,
+  Phone,
+  User,
+  Info,
+  Building,
 } from 'lucide-react';
 
 export default function BloodRequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -52,7 +56,9 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
       if (res.success && res.data) {
         setRequest(res.data);
         // Once we have coordinates and blood type, query matching available donors
-        fetchMatchingDonors(res.data);
+        if (res.data.latitude !== null && res.data.longitude !== null) {
+          fetchMatchingDonors(res.data);
+        }
       } else {
         error('Failed to retrieve request details');
       }
@@ -110,6 +116,20 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
   const isAdmin = user?.role === 'admin';
   const showControls = (isOwner || isAdmin) && (request?.status === 'pending' || request?.status === 'matched');
 
+  // Title rendering helper
+  const getRequestTitle = () => {
+    if (!request) return '';
+    if (request.requestType === 'INDIVIDUAL') {
+      return `Individual Request: ${request.seeker?.name || 'Patient'}`;
+    }
+    if (request.requestType === 'HOSPITAL') {
+      return `Hospital Request: ${request.hospitalName}`;
+    }
+    return `Blood Bank Request: ${request.hospitalName}`;
+  };
+
+  const hasLocationCoordinates = request?.latitude !== null && request?.longitude !== null;
+
   return (
     <SidebarLayout>
       <div className="space-y-6">
@@ -141,9 +161,9 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Request Details Core Card */}
             <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader className="flex flex-row items-start justify-between">
-                  <div className="space-y-1.5">
+              <Card className="rounded-3xl border-gray-100 shadow-xl overflow-hidden">
+                <CardHeader className="flex flex-row items-start justify-between bg-gradient-to-r from-red-50/50 to-rose-50/10 p-6 border-b border-gray-50">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Badge
                         variant={
@@ -167,43 +187,104 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
                       >
                         {request.status}
                       </Badge>
+                      <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-widest font-bold text-[9px] px-2.5 py-0.5">
+                        {request.requestType}
+                      </Badge>
                     </div>
-                    <CardTitle className="text-2xl pt-1">Request for {request.hospitalName}</CardTitle>
-                    <CardDescription className="flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
-                      <span>{request.hospitalAddress}</span>
-                    </CardDescription>
+                    <CardTitle className="text-2xl pt-1 text-gray-900 font-extrabold tracking-tight">{getRequestTitle()}</CardTitle>
+                    {request.requestType !== 'INDIVIDUAL' && request.hospitalAddress && (
+                      <CardDescription className="flex items-center gap-1.5 font-semibold text-gray-500">
+                        <MapPin className="h-4 w-4 text-red-500 shrink-0" />
+                        <span>{request.hospitalAddress}</span>
+                      </CardDescription>
+                    )}
                   </div>
 
-                  <div className="h-14 w-14 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-extrabold flex items-center justify-center text-xl shadow-sm">
+                  <div className="h-14 w-14 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-extrabold flex items-center justify-center text-xl shadow-md">
                     {request.bloodType?.name || 'A+'}
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
+                <CardContent className="p-6 space-y-6">
                   {/* Summary Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-b border-gray-100 pb-6">
                     <div>
-                      <p className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Bags Needed</p>
-                      <p className="text-xl font-extrabold text-gray-900 mt-0.5">{request.unitsRequired} bags</p>
+                      <p className="text-xs text-gray-400 font-bold tracking-wider uppercase">Bags Needed</p>
+                      <p className="text-xl font-extrabold text-gray-900 mt-0.5">
+                        {request.unitsRequired ? `${request.unitsRequired} bags` : 'Not Specified'}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Posted On</p>
+                      <p className="text-xs text-gray-400 font-bold tracking-wider uppercase">Posted On</p>
                       <p className="text-base font-bold text-gray-900 mt-1">
                         {new Date(request.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Coordinates</p>
+                      <p className="text-xs text-gray-400 font-bold tracking-wider uppercase">Coordinates</p>
                       <p className="text-sm font-semibold text-gray-700 mt-1">
-                        {request.latitude.toFixed(4)}, {request.longitude.toFixed(4)}
+                        {hasLocationCoordinates ? `${request.latitude?.toFixed(4)}, ${request.longitude?.toFixed(4)}` : 'No GPS Specified'}
                       </p>
                     </div>
                   </div>
 
+                  {/* Dynamic detailed attributes based on requestType */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-400 tracking-wider uppercase">Requester Parameters</h4>
+
+                    {request.requestType === 'INDIVIDUAL' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Patient Contact Phone</p>
+                          <p className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span>{request.requesterPhone || request.seeker?.phone || 'None'}</span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Preferred Target Hospital</p>
+                          <p className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
+                            <Building className="h-4 w-4 text-gray-400" />
+                            <span>{request.preferredHospital || 'None'}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {(request.requestType === 'HOSPITAL' || request.requestType === 'BLOOD_BANK') && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Coordinator Name</p>
+                          <p className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
+                            <User className="h-4 w-4 text-gray-400" />
+                            <span>{request.coordinatorName || 'None'}</span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Coordinator Phone / Contact</p>
+                          <p className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span>{request.coordinatorContact || 'None'}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {request.additionalNotes && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">Additional Clinical Notes</p>
+                        <p className="text-sm text-gray-600 bg-amber-50/50 p-4 rounded-xl border border-amber-100 font-semibold leading-relaxed">
+                          {request.additionalNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Actions Section for Seeker/Admin */}
                   {showControls && (
-                    <div className="bg-red-50/40 p-5 rounded-2xl border border-red-100/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="bg-red-50/40 p-5 rounded-2xl border border-red-100/50 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100">
                       <div className="space-y-0.5 text-center sm:text-left">
                         <p className="text-sm font-bold text-red-950">Update Request Status</p>
                         <p className="text-xs text-gray-500">Manage the status of this emergency search.</p>
@@ -211,6 +292,7 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
 
                       <div className="flex gap-2 w-full sm:w-auto">
                         <Button
+                          type="button"
                           variant="outline"
                           onClick={() => setConfirmingStatus('cancelled')}
                           className="flex-1 sm:flex-none flex items-center gap-1 text-gray-600 border-gray-300 font-semibold text-xs py-2"
@@ -219,7 +301,7 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
                         </Button>
                         <Button
                           onClick={() => setConfirmingStatus('completed')}
-                          className="flex-1 sm:flex-none flex items-center gap-1 font-bold text-xs py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800"
+                          className="flex-1 sm:flex-none flex items-center gap-1 font-bold text-xs py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white"
                         >
                           <CheckCircle2 className="h-4 w-4" /> Mark Completed
                         </Button>
@@ -230,98 +312,110 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
               </Card>
 
               {/* Matched Proximity Donors Engine */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Compass className="h-5 w-5 text-red-600 animate-spin" />
-                      <span>Nearby Compatible Donors Match</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Live real-time geographic calculation of compatible donors in {searchRadius}km radius
-                    </CardDescription>
-                  </div>
-                  {/* Radius adjust selector */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-400 shrink-0 uppercase">Radius</span>
-                    <select
-                      value={searchRadius}
-                      onChange={(e) => {
-                        const nextRad = Number(e.target.value);
-                        setSearchRadius(nextRad);
-                        fetchMatchingDonors({ ...request, radius: nextRad });
-                      }}
-                      className="text-xs font-semibold px-2 py-1 bg-gray-50 rounded border border-gray-200"
-                    >
-                      <option value={10}>10 km</option>
-                      <option value={20}>20 km</option>
-                      <option value={50}>50 km</option>
-                      <option value={100}>100 km</option>
-                    </select>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {loadingDonors ? (
-                    <SkeletonTable />
-                  ) : matchedDonors.length === 0 ? (
-                    <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl space-y-2">
-                      <div className="h-10 w-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto">
-                        <AlertCircle className="h-5 w-5" />
+              {hasLocationCoordinates ? (
+                <Card className="rounded-3xl border-gray-100 shadow-xl overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between bg-gray-50/50 p-6 border-b border-gray-50">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                        <Compass className="h-5 w-5 text-red-600 animate-spin" />
+                        <span>Nearby Compatible Donors Match</span>
+                      </CardTitle>
+                      <CardDescription>
+                        Live real-time geographic calculation of compatible donors in {searchRadius}km radius
+                      </CardDescription>
+                    </div>
+                    {/* Radius adjust selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-400 shrink-0 uppercase">Radius</span>
+                      <select
+                        value={searchRadius}
+                        onChange={(e) => {
+                          const nextRad = Number(e.target.value);
+                          setSearchRadius(nextRad);
+                          fetchMatchingDonors({ ...request, radius: nextRad });
+                        }}
+                        className="text-xs font-semibold px-2.5 py-1.5 bg-white rounded-xl border border-gray-200"
+                      >
+                        <option value={10}>10 km</option>
+                        <option value={20}>20 km</option>
+                        <option value={50}>50 km</option>
+                        <option value={100}>100 km</option>
+                      </select>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {loadingDonors ? (
+                      <SkeletonTable />
+                    ) : matchedDonors.length === 0 ? (
+                      <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl space-y-2">
+                        <div className="h-10 w-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto">
+                          <AlertCircle className="h-5 w-5" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-500">No available compatible donors found in radius</p>
                       </div>
-                      <p className="text-sm font-semibold text-gray-500">No available compatible donors found in radius</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm font-medium">
-                        <thead>
-                          <tr className="border-b border-gray-100 text-gray-400 text-xs uppercase font-bold tracking-wider">
-                            <th className="pb-3 pr-4">Donor Name</th>
-                            <th className="pb-3 pr-4">Blood Type</th>
-                            <th className="pb-3 pr-4">Approximate Distance</th>
-                            <th className="pb-3 pr-4">City / Area</th>
-                            <th className="pb-3 text-right">Available Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {matchedDonors.map((d, index) => (
-                            <tr key={index} className="hover:bg-gray-50/30">
-                              <td className="py-3 pr-4 font-bold text-gray-900">{d.name}</td>
-                              <td className="py-3 pr-4">
-                                <span className="h-6 w-6 rounded-lg bg-red-50 text-red-600 font-extrabold flex items-center justify-center border border-red-100 text-xs">
-                                  {d.bloodType}
-                                </span>
-                              </td>
-                              <td className="py-3 pr-4 text-gray-600 font-bold flex items-center gap-1.5">
-                                <Compass className="h-4 w-4 text-rose-500 shrink-0" />
-                                <span>~ {d.distanceKm.toFixed(1)} km</span>
-                              </td>
-                              <td className="py-3 pr-4 text-xs text-gray-400 font-medium">{d.location || 'Unknown'}</td>
-                              <td className="py-3 text-right">
-                                <Badge variant={d.isAvailable ? 'success' : 'neutral'}>
-                                  {d.isAvailable ? 'Available' : 'Busy'}
-                                </Badge>
-                              </td>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm font-medium">
+                          <thead>
+                            <tr className="border-b border-gray-100 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                              <th className="pb-3 pr-4">Donor Name</th>
+                              <th className="pb-3 pr-4">Blood Type</th>
+                              <th className="pb-3 pr-4">Approximate Distance</th>
+                              <th className="pb-3 pr-4">City / Area</th>
+                              <th className="pb-3 text-right">Available Status</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {matchedDonors.map((d, index) => (
+                              <tr key={index} className="hover:bg-gray-50/30">
+                                <td className="py-3 pr-4 font-bold text-gray-900">{d.name}</td>
+                                <td className="py-3 pr-4">
+                                  <span className="h-6 w-6 rounded-lg bg-red-50 text-red-600 font-extrabold flex items-center justify-center border border-red-100 text-xs">
+                                    {d.bloodType}
+                                  </span>
+                                </td>
+                                <td className="py-3 pr-4 text-gray-600 font-bold flex items-center gap-1.5">
+                                  <Compass className="h-4 w-4 text-rose-500 shrink-0" />
+                                  <span>~ {d.distanceKm.toFixed(1)} km</span>
+                                </td>
+                                <td className="py-3 pr-4 text-xs text-gray-400 font-medium">{d.location || 'Unknown'}</td>
+                                <td className="py-3 text-right">
+                                  <Badge variant={d.isAvailable ? 'success' : 'neutral'}>
+                                    {d.isAvailable ? 'Available' : 'Busy'}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100 flex items-start gap-3.5">
+                  <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-amber-900">Direct Donor Proximity Calculation Standby</p>
+                    <p className="text-xs text-amber-800 leading-relaxed font-semibold">
+                      This request has been raised without GPS location coordinates. Exact geographic matching of compatible local donors will calculate once a hospital target location destination is specified.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Side Blood compatibility overview & notes */}
             <div className="lg:col-span-1 space-y-6">
-              <Card>
+              <Card className="rounded-3xl border-gray-100 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Emergency Seekers Note</CardTitle>
+                  <CardTitle className="text-sm font-extrabold text-gray-900 uppercase tracking-wider">Emergency Seekers Note</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-xs leading-relaxed text-gray-600">
+                <CardContent className="space-y-4 text-xs leading-relaxed text-gray-600 font-semibold">
                   <p>
                     To ensure the privacy of our blood donors, exact locations and contact phone numbers are hidden.
                   </p>
-                  <p className="bg-amber-50 text-amber-900 p-3 rounded-xl border border-amber-100 font-medium">
+                  <p className="bg-amber-50 text-amber-900 p-3.5 rounded-xl border border-amber-100 font-medium">
                     Matched donors are automatically sent instant push alerts & system notifications detailing the emergency hospital location.
                   </p>
                 </CardContent>

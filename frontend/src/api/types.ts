@@ -4,6 +4,8 @@ export type RequestStatus = 'pending' | 'matched' | 'completed' | 'cancelled';
 
 export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
 
+export type RequestType = 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK';
+
 export interface User {
   id: string;
   name: string;
@@ -41,13 +43,22 @@ export interface BloodRequest {
   id: string;
   seekerId: string;
   bloodTypeId: string;
-  hospitalName: string;
-  hospitalAddress: string;
-  latitude: number;
-  longitude: number;
-  unitsRequired: number;
+  requestType: RequestType;
+  hospitalName?: string | null;
+  hospitalAddress?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  unitsRequired?: number | null;
   urgencyLevel: UrgencyLevel;
   status: RequestStatus;
+
+  // Custom requester type fields
+  requesterPhone?: string | null;
+  preferredHospital?: string | null;
+  additionalNotes?: string | null;
+  coordinatorName?: string | null;
+  coordinatorContact?: string | null;
+
   createdAt: string;
   updatedAt: string;
   seeker?: User;

@@ -38,14 +38,20 @@ import { useAuthStore } from '@/store/auth';
 
 // Zod schema for editing request
 const editRequestSchema = z.object({
+  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK']),
   bloodType: z.string().min(1, 'Please select a blood type'),
-  hospitalName: z.string().min(2, 'Hospital Name must be at least 2 characters'),
-  hospitalAddress: z.string().min(2, 'Hospital Address is required'),
-  latitude: z.number({ message: 'Latitude is required' }),
-  longitude: z.number({ message: 'Longitude is required' }),
-  unitsRequired: z.number().min(1, 'At least 1 unit is required'),
+  hospitalName: z.string().optional().nullable(),
+  hospitalAddress: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  unitsRequired: z.number().optional().nullable(),
   urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
   status: z.enum(['pending', 'matched', 'completed', 'cancelled']),
+  requesterPhone: z.string().optional().nullable(),
+  preferredHospital: z.string().optional().nullable(),
+  additionalNotes: z.string().optional().nullable(),
+  coordinatorName: z.string().optional().nullable(),
+  coordinatorContact: z.string().optional().nullable(),
 });
 
 type EditRequestFormValues = z.infer<typeof editRequestSchema>;
@@ -73,7 +79,7 @@ export default function BloodRequestsListPage() {
   const [urgencyFilter, setUrgencyFilter] = useState('');
   const [bloodTypeFilter, setBloodTypeFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
-  const [requesterTypeFilter, setRequesterTypeFilter] = useState('');
+  const [requestTypeFilter, setRequestTypeFilter] = useState('');
   const [page, setPage] = useState(1);
 
   // Edit / Delete modals state
@@ -103,8 +109,8 @@ export default function BloodRequestsListPage() {
       if (locationFilter !== '') {
         query.location = locationFilter;
       }
-      if (requesterTypeFilter !== '') {
-        query.requesterType = requesterTypeFilter;
+      if (requestTypeFilter !== '') {
+        query.requestType = requestTypeFilter;
       }
 
       // Fetch all requests central coordination
@@ -118,7 +124,7 @@ export default function BloodRequestsListPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchTerm, statusFilter, urgencyFilter, bloodTypeFilter, locationFilter, requesterTypeFilter]);
+  }, [page, searchTerm, statusFilter, urgencyFilter, bloodTypeFilter, locationFilter, requestTypeFilter]);
 
   useEffect(() => {
     fetchRequests();
@@ -151,22 +157,32 @@ export default function BloodRequestsListPage() {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEditForm,
+    watch: watchEdit,
+    setValue: setValueEdit,
     formState: { errors: editErrors, isSubmitting: isSubmittingEdit },
   } = useForm<EditRequestFormValues>({
     resolver: zodResolver(editRequestSchema),
   });
 
+  const editRequestType = watchEdit('requestType');
+
   const handleOpenEdit = (request: BloodRequest) => {
     setEditingRequest(request);
     resetEditForm({
+      requestType: request.requestType,
       bloodType: request.bloodType?.name || 'A+',
-      hospitalName: request.hospitalName,
-      hospitalAddress: request.hospitalAddress,
-      latitude: request.latitude,
-      longitude: request.longitude,
-      unitsRequired: request.unitsRequired,
+      hospitalName: request.hospitalName || '',
+      hospitalAddress: request.hospitalAddress || '',
+      latitude: request.latitude || 3.1390,
+      longitude: request.longitude || 101.6869,
+      unitsRequired: request.unitsRequired || null,
       urgencyLevel: request.urgencyLevel,
       status: request.status,
+      requesterPhone: request.requesterPhone || '',
+      preferredHospital: request.preferredHospital || '',
+      additionalNotes: request.additionalNotes || '',
+      coordinatorName: request.coordinatorName || '',
+      coordinatorContact: request.coordinatorContact || '',
     });
   };
 
@@ -273,21 +289,21 @@ export default function BloodRequestsListPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              {/* Requester Type Filter */}
+              {/* Request Type Filter */}
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Requester Type</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Request Type</label>
                 <select
-                  value={requesterTypeFilter}
+                  value={requestTypeFilter}
                   onChange={(e) => {
-                    setRequesterTypeFilter(e.target.value);
+                    setRequestTypeFilter(e.target.value);
                     setPage(1);
                   }}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 outline-none focus:border-red-500 bg-white"
                 >
-                  <option value="">All Requesters</option>
-                  <option value="seeker">Individual Seeker</option>
-                  <option value="hospital">Hospital</option>
-                  <option value="blood_bank">Blood Bank</option>
+                  <option value="">All Request Types</option>
+                  <option value="INDIVIDUAL">Individual Seeker</option>
+                  <option value="HOSPITAL">Hospital</option>
+                  <option value="BLOOD_BANK">Blood Bank</option>
                 </select>
               </div>
 
@@ -396,24 +412,29 @@ export default function BloodRequestsListPage() {
                         const isOwner = r.seekerId === user?.id;
                         const hasWritePermissions = isOwner || isAdmin;
 
-                        // Map role to display text
-                        const roleLabel =
-                          r.seeker?.role === 'seeker' ? 'Individual Seeker' :
-                          r.seeker?.role === 'hospital' ? 'Hospital' :
-                          r.seeker?.role === 'blood_bank' ? 'Blood Bank' : 'Admin';
+                        // Display name details based on requestType
+                        const requesterName =
+                          r.requestType === 'INDIVIDUAL'
+                            ? r.seeker?.name || 'Patient Seeker'
+                            : r.hospitalName || 'Organization';
+
+                        const targetLocation =
+                          r.requestType === 'INDIVIDUAL'
+                            ? r.preferredHospital || r.hospitalAddress || 'Patient Residence'
+                            : r.hospitalAddress || 'Organization Address';
 
                         const roleBadgeColor =
-                          r.seeker?.role === 'seeker' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                          r.seeker?.role === 'hospital' ? 'bg-teal-50 text-teal-700 border-teal-100' :
+                          r.requestType === 'INDIVIDUAL' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                          r.requestType === 'HOSPITAL' ? 'bg-teal-50 text-teal-700 border-teal-100' :
                           'bg-amber-50 text-amber-700 border-amber-100';
 
                         return (
                           <tr key={r.id} className="hover:bg-gray-50/40 transition-colors">
                             {/* Requester column */}
                             <td className="py-4 px-6">
-                              <p className="font-extrabold text-gray-900">{r.seeker?.name || 'Anonymous'}</p>
+                              <p className="font-extrabold text-gray-900">{requesterName}</p>
                               <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 mt-1 rounded-full font-bold border ${roleBadgeColor}`}>
-                                {roleLabel}
+                                {r.requestType}
                               </span>
                             </td>
 
@@ -426,17 +447,19 @@ export default function BloodRequestsListPage() {
 
                             {/* Location / Hospital */}
                             <td className="py-4 px-6">
-                              <p className="font-bold text-gray-900 truncate max-w-[200px]">{r.hospitalName}</p>
-                              <span className="flex items-center gap-1 text-xs text-gray-400 truncate max-w-[200px] mt-1 font-semibold">
-                                <MapPin className="h-3 w-3 shrink-0 text-red-400" />
-                                <span>{r.hospitalAddress}</span>
-                              </span>
+                              <p className="font-bold text-gray-900 truncate max-w-[200px]">{targetLocation}</p>
+                              {r.requestType !== 'INDIVIDUAL' && r.hospitalAddress && (
+                                <span className="flex items-center gap-1 text-xs text-gray-400 truncate max-w-[200px] mt-1 font-semibold">
+                                  <MapPin className="h-3 w-3 shrink-0 text-red-400" />
+                                  <span>{r.hospitalAddress}</span>
+                                </span>
+                              )}
                             </td>
 
                             {/* Units */}
                             <td className="py-4 px-6">
                               <span className="bg-gray-100 text-gray-800 text-xs font-bold px-2.5 py-1 rounded-lg">
-                                {r.unitsRequired} bags
+                                {r.unitsRequired ? `${r.unitsRequired} bags` : 'Any'}
                               </span>
                             </td>
 
@@ -602,6 +625,20 @@ export default function BloodRequestsListPage() {
               </div>
 
               <form onSubmit={handleSubmitEdit(onSubmitEdit)} className="p-6 space-y-4">
+
+                {/* Requester Type Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Requester Type</label>
+                  <select
+                    {...registerEdit('requestType')}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white"
+                  >
+                    <option value="INDIVIDUAL">INDIVIDUAL</option>
+                    <option value="HOSPITAL">HOSPITAL</option>
+                    <option value="BLOOD_BANK">BLOOD_BANK</option>
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Blood Type Required</label>
@@ -618,7 +655,6 @@ export default function BloodRequestsListPage() {
                       <option value="O+">O+</option>
                       <option value="O-">O-</option>
                     </select>
-                    {editErrors.bloodType && <p className="text-[10px] text-red-500 font-bold mt-1">{editErrors.bloodType.message}</p>}
                   </div>
 
                   <div>
@@ -632,61 +668,123 @@ export default function BloodRequestsListPage() {
                       <option value="high">High</option>
                       <option value="critical">Critical</option>
                     </select>
-                    {editErrors.urgencyLevel && <p className="text-[10px] text-red-500 font-bold mt-1">{editErrors.urgencyLevel.message}</p>}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Hospital Name</label>
-                    <input
-                      type="text"
-                      {...registerEdit('hospitalName')}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
-                    />
-                    {editErrors.hospitalName && <p className="text-[10px] text-red-500 font-bold mt-1">{editErrors.hospitalName.message}</p>}
-                  </div>
+                {/* Conditional Fields on Edit form too */}
+                {editRequestType === 'INDIVIDUAL' && (
+                  <div className="space-y-3.5 border-t border-gray-100 pt-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Requester Contact Phone</label>
+                        <input
+                          type="text"
+                          {...registerEdit('requesterPhone')}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Preferred Hospital</label>
+                        <input
+                          type="text"
+                          {...registerEdit('preferredHospital')}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Units Required</label>
-                    <input
-                      type="number"
-                      {...registerEdit('unitsRequired', { valueAsNumber: true })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
-                    />
-                    {editErrors.unitsRequired && <p className="text-[10px] text-red-500 font-bold mt-1">{editErrors.unitsRequired.message}</p>}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">Units Required (Optional)</label>
+                      <input
+                        type="number"
+                        {...registerEdit('unitsRequired', { valueAsNumber: true })}
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {editRequestType !== 'INDIVIDUAL' && (
+                  <div className="space-y-3.5 border-t border-gray-100 pt-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Organization Name</label>
+                        <input
+                          type="text"
+                          {...registerEdit('hospitalName')}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Units Required</label>
+                        <input
+                          type="number"
+                          {...registerEdit('unitsRequired', { valueAsNumber: true })}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Coordinator Name</label>
+                        <input
+                          type="text"
+                          {...registerEdit('coordinatorName')}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Coordinator Contact</label>
+                        <input
+                          type="text"
+                          {...registerEdit('coordinatorContact')}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">Organization Address</label>
+                      <input
+                        type="text"
+                        {...registerEdit('hospitalAddress')}
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Latitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          {...registerEdit('latitude', { valueAsNumber: true })}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Longitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          {...registerEdit('longitude', { valueAsNumber: true })}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Hospital Full Address</label>
-                  <input
-                    type="text"
-                    {...registerEdit('hospitalAddress')}
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Additional Notes</label>
+                  <textarea
+                    {...registerEdit('additionalNotes')}
+                    rows={2}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
                   />
-                  {editErrors.hospitalAddress && <p className="text-[10px] text-red-500 font-bold mt-1">{editErrors.hospitalAddress.message}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 border-t border-gray-50 pt-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Latitude</label>
-                    <input
-                      type="number"
-                      step="any"
-                      {...registerEdit('latitude', { valueAsNumber: true })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Longitude</label>
-                    <input
-                      type="number"
-                      step="any"
-                      {...registerEdit('longitude', { valueAsNumber: true })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200"
-                    />
-                  </div>
                 </div>
 
                 <div>
@@ -706,7 +804,7 @@ export default function BloodRequestsListPage() {
                   <Button type="button" variant="outline" size="sm" onClick={() => setEditingRequest(null)}>
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="bg-red-600 hover:bg-red-700" isLoading={isSubmittingEdit}>
+                  <Button type="submit" size="sm" className="bg-red-600 hover:bg-red-700 text-white" isLoading={isSubmittingEdit}>
                     Save Changes
                   </Button>
                 </div>

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UrgencyLevel } from '@prisma/client';
+import { UrgencyLevel, RequestType } from '@prisma/client';
 import {
   IsEnum,
   IsInt,
@@ -12,36 +12,69 @@ import {
 } from 'class-validator';
 
 export class CreateBloodRequestDto {
+  @ApiPropertyOptional({ enum: RequestType, default: RequestType.INDIVIDUAL })
+  @IsOptional()
+  @IsEnum(RequestType)
+  requestType?: RequestType;
+
   @ApiProperty({ example: 'A+' })
   @IsString()
   @IsNotEmpty()
   bloodType: string;
 
-  @ApiProperty({ example: 'Hospital Kuala Lumpur' })
+  @ApiPropertyOptional({ example: 'Hospital Kuala Lumpur' })
   @IsString()
-  @IsNotEmpty()
-  hospitalName: string;
+  @IsOptional()
+  hospitalName?: string;
 
-  @ApiProperty({ example: 'Jalan Pahang, 53000 Kuala Lumpur' })
+  @ApiPropertyOptional({ example: 'Jalan Pahang, 53000 Kuala Lumpur' })
   @IsString()
-  @IsNotEmpty()
-  hospitalAddress: string;
+  @IsOptional()
+  hospitalAddress?: string;
 
-  @ApiProperty({ example: 3.1725 })
+  @ApiPropertyOptional({ example: 3.1725 })
   @IsLatitude()
-  latitude: number;
+  @IsOptional()
+  latitude?: number;
 
-  @ApiProperty({ example: 101.7017 })
+  @ApiPropertyOptional({ example: 101.7017 })
   @IsLongitude()
-  longitude: number;
+  @IsOptional()
+  longitude?: number;
 
-  @ApiProperty({ example: 2, minimum: 1 })
+  @ApiPropertyOptional({ example: 2, minimum: 1 })
   @IsInt()
   @Min(1)
-  unitsRequired: number;
+  @IsOptional()
+  unitsRequired?: number;
 
   @ApiPropertyOptional({ enum: UrgencyLevel, default: UrgencyLevel.medium })
   @IsOptional()
   @IsEnum(UrgencyLevel)
   urgencyLevel?: UrgencyLevel;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  requesterPhone?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  preferredHospital?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  additionalNotes?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  coordinatorName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  coordinatorContact?: string;
 }
