@@ -29,6 +29,8 @@ import {
   Building,
 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function BloodRequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
@@ -163,33 +165,46 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
             <div className="lg:col-span-2 space-y-6">
               <Card className="rounded-3xl border-gray-100 shadow-xl overflow-hidden">
                 <CardHeader className="flex flex-row items-start justify-between bg-gradient-to-r from-red-50/50 to-rose-50/10 p-6 border-b border-gray-50">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          request.urgencyLevel === 'critical' || request.urgencyLevel === 'high'
-                            ? 'critical'
-                            : request.urgencyLevel === 'medium'
-                            ? 'warning'
-                            : 'success'
-                        }
-                      >
-                        {request.urgencyLevel} Urgency
-                      </Badge>
-                      <Badge
-                        variant={
-                          request.status === 'completed'
-                            ? 'success'
-                            : request.status === 'cancelled'
-                            ? 'neutral'
-                            : 'warning'
-                        }
-                      >
-                        {request.status}
-                      </Badge>
-                      <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-widest font-bold text-[9px] px-2.5 py-0.5">
-                        {request.requestType}
-                      </Badge>
+                  <div className="space-y-2 w-full">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            request.urgencyLevel === 'critical' || request.urgencyLevel === 'high'
+                              ? 'critical'
+                              : request.urgencyLevel === 'medium'
+                              ? 'warning'
+                              : 'success'
+                          }
+                        >
+                          {request.urgencyLevel} Urgency
+                        </Badge>
+                        <Badge
+                          variant={
+                            request.status === 'completed'
+                              ? 'success'
+                              : request.status === 'cancelled'
+                              ? 'neutral'
+                              : 'warning'
+                          }
+                        >
+                          {request.status}
+                        </Badge>
+                        <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-widest font-bold text-[9px] px-2.5 py-0.5">
+                          {request.requestType}
+                        </Badge>
+                      </div>
+
+                      {showControls && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => router.push(`/blood-requests/${id}/edit`)}
+                          className="text-xs font-bold text-gray-700 border-gray-300 hover:bg-gray-50 flex items-center gap-1 shrink-0"
+                        >
+                          Edit Request
+                        </Button>
+                      )}
                     </div>
                     <CardTitle className="text-2xl pt-1 text-gray-900 font-extrabold tracking-tight">{getRequestTitle()}</CardTitle>
                     {request.requestType !== 'INDIVIDUAL' && request.hospitalAddress && (

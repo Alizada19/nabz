@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuthStore } from '@/store/auth';
 import { bloodRequestsService } from '@/api/bloodRequests';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -12,9 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { SidebarLayout } from '@/components/layout/SidebarLayout';
 import { useRouter } from 'next/navigation';
-import { MapPin, Navigation, Heart, PlusCircle, User, Activity, Building, Info } from 'lucide-react';
+import { Navigation, Save, ChevronLeft, Info, Loader2 } from 'lucide-react';
 
-const createRequestSchema = z.object({
+const editRequestSchema = z.object({
   requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK']),
   bloodType: z.string().min(1, 'Please select a blood type'),
   unitsRequired: z.number().nullable().optional(),
@@ -112,12 +111,17 @@ const createRequestSchema = z.object({
   }
 });
 
-type CreateRequestFormValues = z.infer<typeof createRequestSchema>;
+type EditRequestFormValues = z.infer<typeof editRequestSchema>;
 
-export default function NewBloodRequestPage() {
-  const { user } = useAuthStore();
+export const dynamic = 'force-dynamic';
+
+export default function EditBloodRequestPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
+
   const { success, error } = useToast();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [detectingLocation, setDetectingLocation] = useState(false);
 
   const {
@@ -127,54 +131,72 @@ export default function NewBloodRequestPage() {
     watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CreateRequestFormValues>({
-    resolver: zodResolver(createRequestSchema),
+  } = useForm<EditRequestFormValues>({
+    resolver: zodResolver(editRequestSchema),
     defaultValues: {
       requestType: 'INDIVIDUAL',
       bloodType: 'A+',
       unitsRequired: 2,
       urgencyLevel: 'medium',
-      requesterName: user?.name || '',
-      requesterPhone: user?.phone || '',
+      requesterName: '',
+      requesterPhone: '',
       currentLocationName: '',
       preferredHospital: '',
       hospitalName: '',
       hospitalAddress: '',
-      latitude: user?.latitude || 3.1390,
-      longitude: user?.longitude || 101.6869,
+      latitude: null,
+      longitude: null,
       coordinatorName: '',
       coordinatorContact: '',
       additionalNotes: '',
     },
   });
 
-  // Pre-populate when user is loaded
+  // Load the current details
   useEffect(() => {
-    if (user) {
-      reset({
-        requestType: 'INDIVIDUAL',
-        bloodType: 'A+',
-        unitsRequired: 2,
-        urgencyLevel: 'medium',
-        requesterName: user.name || '',
-        requesterPhone: user.phone || '',
-        currentLocationName: '',
-        preferredHospital: '',
-        hospitalName: '',
-        hospitalAddress: '',
-        latitude: user.latitude || 3.1390,
-        longitude: user.longitude || 101.6869,
-        coordinatorName: '',
-        coordinatorContact: '',
-        additionalNotes: '',
-      });
+    async function loadRequest() {
+      try {
+        const res = await bloodRequestsService.findOne(id);
+        if (res.success && res.data) {
+          const req = res.data;
+
+          reset({
+            requestType: req.requestType || 'INDIVIDUAL',
+            bloodType: req.bloodType?.name || 'A+',
+            unitsRequired: req.unitsRequired || null,
+            urgencyLevel: req.urgencyLevel || 'medium',
+
+            requesterName: req.requestType === 'INDIVIDUAL' ? (req.seeker?.name || '') : '',
+            requesterPhone: req.requesterPhone || req.seeker?.phone || '',
+            currentLocationName: req.requestType === 'INDIVIDUAL' ? (req.hospitalAddress || '') : '',
+            preferredHospital: req.preferredHospital || '',
+            additionalNotes: req.additionalNotes || '',
+
+            hospitalName: req.requestType !== 'INDIVIDUAL' ? (req.hospitalName || '') : '',
+            hospitalAddress: req.requestType !== 'INDIVIDUAL' ? (req.hospitalAddress || '') : '',
+            latitude: req.latitude || null,
+            longitude: req.longitude || null,
+            coordinatorName: req.coordinatorName || '',
+            coordinatorContact: req.coordinatorContact || '',
+          });
+        } else {
+          error('Failed to load blood request details for editing');
+          router.push(`/blood-requests/${id}`);
+        }
+      } catch (err) {
+        console.error(err);
+        error('Error loading blood request details');
+        router.push('/blood-requests');
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [user, reset]);
+    loadRequest();
+  }, [id, reset, error, router]);
 
   const requestType = watch('requestType');
   const preferredHospital = watch('preferredHospital');
 
-  // Individual displays hospital-specific fields if Preferred Hospital is selected/entered.
   const showPreferredHospitalFields = requestType === 'INDIVIDUAL' && !!preferredHospital && preferredHospital.trim() !== '';
 
   const detectLocation = () => {
@@ -206,7 +228,7 @@ export default function NewBloodRequestPage() {
     );
   };
 
-  const onSubmit = async (values: CreateRequestFormValues) => {
+  const onSubmit = async (values: EditRequestFormValues) => {
     try {
       const payload: any = {
         requestType: values.requestType,
@@ -223,6 +245,8 @@ export default function NewBloodRequestPage() {
         payload.hospitalAddress = values.currentLocationName || 'Patient Current Address';
         payload.latitude = values.latitude || null;
         payload.longitude = values.longitude || null;
+        payload.coordinatorName = null;
+        payload.coordinatorContact = null;
       } else {
         payload.hospitalName = values.hospitalName || null;
         payload.hospitalAddress = values.hospitalAddress || null;
@@ -232,33 +256,52 @@ export default function NewBloodRequestPage() {
         payload.coordinatorContact = values.coordinatorContact || null;
       }
 
-      const res = await bloodRequestsService.create(payload);
+      const res = await bloodRequestsService.update(id, payload);
       if (res.success && res.data) {
-        success('Emergency Blood Request broadcasted successfully!');
-        router.push(`/blood-requests`);
+        success('Emergency Blood Request updated successfully!');
+        router.push(`/blood-requests/${id}`);
       } else {
-        error(res.message || 'Failed to create blood request');
+        error(res.message || 'Failed to update blood request');
       }
     } catch (err: any) {
       console.error(err);
-      error(err.response?.data?.message || 'Error occurred while submitting request');
+      error(err.response?.data?.message || 'Error occurred while updating request');
     }
   };
+
+  if (loading) {
+    return (
+      <SidebarLayout>
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <Loader2 className="h-10 w-10 text-red-600 animate-spin" />
+          <p className="text-sm text-gray-500 font-semibold">Loading request parameters...</p>
+        </div>
+      </SidebarLayout>
+    );
+  }
 
   return (
     <SidebarLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create Emergency Request</h1>
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors uppercase tracking-wider mb-4"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span>Cancel and Go Back</span>
+          </button>
+
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Edit Emergency Request</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Publish a live coordinating request connecting individual seeker needs to nearby compatible donors.
+            Update active coordinate-based matching data, contact details, or patient clinical notes.
           </p>
         </div>
 
         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-            {/* Requester Type: MANDATORY FIRST FIELD */}
+            {/* Requester Type selector */}
             <Select
               label="Requester Type *"
               options={[
@@ -301,14 +344,12 @@ export default function NewBloodRequestPage() {
               />
             </div>
 
-            {/* DYNAMIC FIELD RENDERING */}
-
             {/* 1. INDIVIDUAL FIELDS */}
             {requestType === 'INDIVIDUAL' && (
               <div className="space-y-4 border-t border-gray-100 pt-4 animate-in fade-in duration-200">
                 <div className="flex items-center gap-2 text-indigo-800 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100 text-xs font-semibold">
                   <Info className="h-4.5 w-4.5 text-indigo-500 shrink-0" />
-                  <span>You are creating an Individual seeker request.</span>
+                  <span>You are editing an Individual seeker request.</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -365,7 +406,6 @@ export default function NewBloodRequestPage() {
                   </div>
                 </div>
 
-                {/* Optional coordinates input for Individual */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
                   <Input
                     label="Latitude (optional)"
@@ -383,12 +423,11 @@ export default function NewBloodRequestPage() {
                   />
                 </div>
 
-                {/* Preferred Hospital sub-fields (displayed only if filled out) */}
                 {showPreferredHospitalFields && (
                   <div className="border-l-4 border-indigo-500 bg-indigo-50/20 p-5 rounded-r-2xl space-y-4 animate-in slide-in-from-left duration-200">
                     <div>
                       <h4 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">Preferred Hospital Specific Info</h4>
-                      <p className="text-xs text-gray-500 mt-0.5">Please provide coordinates if known to route nearby donors to this hospital.</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Provide coordinates if known to route nearby donors to this hospital.</p>
                     </div>
 
                     <Input
@@ -639,8 +678,8 @@ export default function NewBloodRequestPage() {
                 Cancel
               </Button>
               <Button type="submit" className="px-6 font-bold flex items-center gap-2 bg-red-600 hover:bg-red-700" isLoading={isSubmitting}>
-                <PlusCircle className="h-4 w-4" />
-                <span>Submit Request</span>
+                <Save className="h-4 w-4" />
+                <span>Save Changes</span>
               </Button>
             </div>
           </form>
