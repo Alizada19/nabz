@@ -73,11 +73,12 @@ export default function DashboardPage() {
     totalCount: 0,
   });
 
-  const isDonor = user?.role === 'donor';
-  const isSeeker = user?.role === 'seeker';
+  const isIndividual = user?.role === 'individual';
   const isHospital = user?.role === 'hospital';
   const isBloodBank = user?.role === 'blood_bank';
+  const isNgo = user?.role === 'ngo';
   const isAdmin = user?.role === 'admin';
+  const showDonorSection = isIndividual && !!donorProfile;
 
   // Measure REST API Roundtrip Latency
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function DashboardPage() {
   // DONOR FLOW: Load donor profile, eligibility countdown and responses
   // --------------------------------------------------------------------
   const fetchDonorInfo = useCallback(async () => {
-    if (!user || !isDonor) return;
+    if (!user) return;
     setLoadingProfile(true);
     try {
       const res = await donorProfilesService.getMine();
@@ -107,31 +108,18 @@ export default function DashboardPage() {
       }
     } catch (err: any) {
       console.error('Failed to get donor profile:', err);
-      // Auto-create with user's blood type if 404
-      if (err.response?.status === 404) {
-        try {
-          const createRes = await donorProfilesService.create({ bloodType: 'A+' });
-          if (createRes.success) {
-            setDonorProfile(createRes.data);
-          }
-        } catch (createErr) {
-          console.error('Auto-creation failed:', createErr);
-        }
-      }
     } finally {
       setLoadingProfile(false);
     }
-  }, [user, isDonor]);
+  }, [user]);
 
   // Load compatible emergency requests for the donor
   const fetchCompatibleRequests = useCallback(async () => {
-    if (!isDonor) return;
+    if (!showDonorSection) return;
     setLoadingActiveRequests(true);
     try {
-      // Find compatible requests
       const res = await bloodRequestsService.findMine({ limit: 50 });
       if (res.success && res.data) {
-        // Mock compatible requests by filtering or displaying relevant postings
         setActiveRequests(res.data.items.filter((r) => r.status === 'pending' || r.status === 'matched'));
       }
     } catch (err) {
@@ -139,14 +127,12 @@ export default function DashboardPage() {
     } finally {
       setLoadingActiveRequests(false);
     }
-  }, [isDonor]);
+  }, [showDonorSection]);
 
   useEffect(() => {
-    if (isDonor) {
-      fetchDonorInfo();
-      fetchCompatibleRequests();
-    }
-  }, [isDonor, fetchDonorInfo, fetchCompatibleRequests]);
+    fetchDonorInfo();
+    fetchCompatibleRequests();
+  }, [fetchDonorInfo, fetchCompatibleRequests]);
 
   // Toggle Donor availability status
   const handleToggleAvailability = async () => {
@@ -216,7 +202,6 @@ export default function DashboardPage() {
   // SEEKER / HOSPITAL FLOW: Form Submission, List Requests, Stats
   // --------------------------------------------------------------------
   const fetchMyRequests = useCallback(async () => {
-    if (isDonor) return;
     setLoadingMyRequests(true);
     try {
       const res = await bloodRequestsService.findMine({ limit: 100 });
@@ -224,7 +209,6 @@ export default function DashboardPage() {
         const items = res.data.items;
         setMyRequests(items);
 
-        // Stats
         setStats({
           pendingCount: items.filter((r) => r.status === 'pending').length,
           matchedCount: items.filter((r) => r.status === 'matched').length,
@@ -237,13 +221,11 @@ export default function DashboardPage() {
     } finally {
       setLoadingMyRequests(false);
     }
-  }, [isDonor]);
+  }, []);
 
   useEffect(() => {
-    if (!isDonor) {
-      fetchMyRequests();
-    }
-  }, [isDonor, fetchMyRequests]);
+    fetchMyRequests();
+  }, [fetchMyRequests]);
 
   // Create blood request
   const handleCreateRequest = async (e: React.FormEvent) => {
@@ -304,14 +286,14 @@ export default function DashboardPage() {
             </Badge>
             <h1 className="text-3xl font-extrabold tracking-tight">Welcome back, {user?.name}!</h1>
             <p className="text-sm text-red-100 font-medium">
-              {isDonor
-                ? 'Your donation profile coordinates and matches you directly with medical emergencies.'
+              {showDonorSection
+                ? 'Your donation profile coordinates and matches you directly with medical emergencies — and you can still create blood requests.'
                 : 'Direct emergency matching system connecting patients to nearby blood donors.'}
             </p>
           </div>
 
           <div className="flex gap-2">
-            {isDonor && (
+            {showDonorSection && (
               <Button
                 variant={donorProfile?.availableStatus ? 'primary' : 'outline'}
                 onClick={handleToggleAvailability}
@@ -325,13 +307,13 @@ export default function DashboardPage() {
                 {donorProfile?.availableStatus ? 'Active & Available' : 'Go Online to Donate'}
               </Button>
             )}
-            {!isDonor && (
+            {(isIndividual || isHospital || isBloodBank || isNgo || isAdmin) && (
               <Button
                 onClick={() => router.push('/blood-requests/new')}
                 className="bg-white text-red-600 font-extrabold px-5 py-2.5 rounded-xl hover:bg-gray-100 border border-transparent shadow-md flex items-center gap-2"
               >
                 <PlusCircle className="h-5 w-5" />
-                <span>New Seek Request</span>
+                <span>New Blood Request</span>
               </Button>
             )}
           </div>
@@ -340,7 +322,7 @@ export default function DashboardPage() {
         {/* --------------------------------------------------------- */}
         {/* DONOR WORKFLOW LAYOUT                                     */}
         {/* --------------------------------------------------------- */}
-        {isDonor && (
+        {showDonorSection && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Left Col: Donor Profile Onboarding, Status, and Eligibility */}
@@ -563,9 +545,9 @@ export default function DashboardPage() {
         )}
 
         {/* --------------------------------------------------------- */}
-        {/* SEEKER / HOSPITAL / ORGANIZATION WORKFLOW LAYOUT          */}
+        {/* REQUESTER / HOSPITAL / ORGANIZATION WORKFLOW LAYOUT       */}
         {/* --------------------------------------------------------- */}
-        {!isDonor && (
+        {(isIndividual || isHospital || isBloodBank || isNgo || isAdmin) && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Left Col: Instant Fast creation of blood requests */}

@@ -86,7 +86,7 @@ export default function DonorProfilePage() {
   };
 
   useEffect(() => {
-    if (user?.role === 'donor') {
+    if (user?.role === 'individual') {
       fetchDonorProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,7 +114,7 @@ export default function DonorProfilePage() {
     }
   };
 
-  if (user?.role !== 'donor') {
+  if (user?.role !== 'individual') {
     return (
       <SidebarLayout>
         <Card className="max-w-md mx-auto mt-12">
@@ -124,7 +124,8 @@ export default function DonorProfilePage() {
             </div>
             <h3 className="text-lg font-bold text-gray-900">Access Denied</h3>
             <p className="text-xs text-gray-500">
-              Only users with the &quot;donor&quot; role have access to donor profile configuration dashboards.
+              Only individual accounts can configure a donor profile. Organizations coordinate donors
+              through their own organization dashboards.
             </p>
           </CardContent>
         </Card>

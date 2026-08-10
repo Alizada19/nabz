@@ -114,18 +114,20 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
     }
   };
 
-  const isOwner = user?.id === request?.seekerId;
+  const isOwner = user?.id === request?.requesterId;
   const isAdmin = user?.role === 'admin';
   const showControls = (isOwner || isAdmin) && (request?.status === 'pending' || request?.status === 'matched');
 
-  // Title rendering helper
   const getRequestTitle = () => {
     if (!request) return '';
     if (request.requestType === 'INDIVIDUAL') {
-      return `Individual Request: ${request.seeker?.name || 'Patient'}`;
+      return `Individual Request: ${request.requester?.name || 'Patient'}`;
     }
     if (request.requestType === 'HOSPITAL') {
       return `Hospital Request: ${request.hospitalName}`;
+    }
+    if (request.requestType === 'NGO') {
+      return `NGO Campaign: ${request.hospitalName}`;
     }
     return `Blood Bank Request: ${request.hospitalName}`;
   };
@@ -253,7 +255,7 @@ export default function BloodRequestDetailsPage({ params }: { params: Promise<{ 
                           <p className="text-[10px] font-bold text-gray-400 uppercase">Patient Contact Phone</p>
                           <p className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
                             <Phone className="h-4 w-4 text-gray-400" />
-                            <span>{request.requesterPhone || request.seeker?.phone || 'None'}</span>
+                            <span>{request.requesterPhone || request.requester?.phone || 'None'}</span>
                           </p>
                         </div>
 

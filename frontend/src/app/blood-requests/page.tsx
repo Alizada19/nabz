@@ -38,7 +38,7 @@ import { useAuthStore } from '@/store/auth';
 
 // Zod schema for editing request
 const editRequestSchema = z.object({
-  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK']),
+  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK', 'NGO']),
   bloodType: z.string().min(1, 'Please select a blood type'),
   hospitalName: z.string().optional().nullable(),
   hospitalAddress: z.string().optional().nullable(),
@@ -220,11 +220,12 @@ export default function BloodRequestsListPage() {
     }
   };
 
-  const isSeeker = user?.role === 'seeker';
+  const isIndividual = user?.role === 'individual';
   const isHospital = user?.role === 'hospital';
   const isBloodBank = user?.role === 'blood_bank';
+  const isNgo = user?.role === 'ngo';
   const isAdmin = user?.role === 'admin';
-  const canCreate = isSeeker || isHospital || isBloodBank || isAdmin;
+  const canCreate = isIndividual || isHospital || isBloodBank || isNgo || isAdmin;
 
   return (
     <SidebarLayout>
@@ -304,6 +305,7 @@ export default function BloodRequestsListPage() {
                   <option value="INDIVIDUAL">Individual Seeker</option>
                   <option value="HOSPITAL">Hospital</option>
                   <option value="BLOOD_BANK">Blood Bank</option>
+                  <option value="NGO">NGO</option>
                 </select>
               </div>
 
@@ -409,13 +411,13 @@ export default function BloodRequestsListPage() {
                         const canComplete = r.status === 'matched';
 
                         // Check if owner or admin
-                        const isOwner = r.seekerId === user?.id;
+                        const isOwner = r.requesterId === user?.id;
                         const hasWritePermissions = isOwner || isAdmin;
 
                         // Display name details based on requestType
                         const requesterName =
                           r.requestType === 'INDIVIDUAL'
-                            ? r.seeker?.name || 'Patient Seeker'
+                            ? r.requester?.name || 'Patient Seeker'
                             : r.hospitalName || 'Organization';
 
                         const targetLocation =
@@ -636,6 +638,7 @@ export default function BloodRequestsListPage() {
                     <option value="INDIVIDUAL">INDIVIDUAL</option>
                     <option value="HOSPITAL">HOSPITAL</option>
                     <option value="BLOOD_BANK">BLOOD_BANK</option>
+                    <option value="NGO">NGO</option>
                   </select>
                 </div>
 

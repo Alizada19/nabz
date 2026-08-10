@@ -285,7 +285,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-4">
             {/* Quick availability stats indicator */}
-            {user?.role === 'donor' && (
+            {user?.role === 'individual' && (
               <span
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                   user?.isAvailable

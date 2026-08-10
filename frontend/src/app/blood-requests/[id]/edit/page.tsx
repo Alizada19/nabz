@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Navigation, Save, ChevronLeft, Info, Loader2 } from 'lucide-react';
 
 const editRequestSchema = z.object({
-  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK']),
+  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK', 'NGO']),
   bloodType: z.string().min(1, 'Please select a blood type'),
   unitsRequired: z.number().nullable().optional(),
   urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
@@ -109,6 +109,44 @@ const editRequestSchema = z.object({
       });
     }
   }
+
+  if (data.requestType === 'NGO') {
+    if (!data.hospitalName || data.hospitalName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Organization name is required',
+        path: ['hospitalName'],
+      });
+    }
+    if (!data.hospitalAddress || data.hospitalAddress.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Organization address is required',
+        path: ['hospitalAddress'],
+      });
+    }
+    if (data.unitsRequired === undefined || data.unitsRequired === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Units Required is required for NGO requests',
+        path: ['unitsRequired'],
+      });
+    }
+    if (!data.coordinatorName || data.coordinatorName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Coordinator name is required',
+        path: ['coordinatorName'],
+      });
+    }
+    if (!data.coordinatorContact || data.coordinatorContact.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Coordinator contact is required',
+        path: ['coordinatorContact'],
+      });
+    }
+  }
 });
 
 type EditRequestFormValues = z.infer<typeof editRequestSchema>;
@@ -166,8 +204,8 @@ export default function EditBloodRequestPage({ params }: { params: Promise<{ id:
             unitsRequired: req.unitsRequired || null,
             urgencyLevel: req.urgencyLevel || 'medium',
 
-            requesterName: req.requestType === 'INDIVIDUAL' ? (req.seeker?.name || '') : '',
-            requesterPhone: req.requesterPhone || req.seeker?.phone || '',
+            requesterName: req.requestType === 'INDIVIDUAL' ? (req.requester?.name || '') : '',
+            requesterPhone: req.requesterPhone || req.requester?.phone || '',
             currentLocationName: req.requestType === 'INDIVIDUAL' ? (req.hospitalAddress || '') : '',
             preferredHospital: req.preferredHospital || '',
             additionalNotes: req.additionalNotes || '',
@@ -349,7 +387,7 @@ export default function EditBloodRequestPage({ params }: { params: Promise<{ id:
               <div className="space-y-4 border-t border-gray-100 pt-4 animate-in fade-in duration-200">
                 <div className="flex items-center gap-2 text-indigo-800 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100 text-xs font-semibold">
                   <Info className="h-4.5 w-4.5 text-indigo-500 shrink-0" />
-                  <span>You are editing an Individual seeker request.</span>
+                  <span>You are editing an Individual blood request.</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
