@@ -20,11 +20,11 @@ const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   phone: z.string().min(8, 'Please enter a valid phone number'),
   password: z.string().min(8, 'Password must be at least 8 characters long'),
-  role: z.enum(['donor', 'seeker', 'hospital', 'blood_bank']),
+  role: z.enum(['individual', 'hospital', 'blood_bank', 'ngo']),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   location: z.string().min(2, 'Location string is required'),
-  bloodType: z.string().optional(), // Used if role is donor
+  bloodType: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -33,7 +33,6 @@ export default function RegisterPage() {
   const { login } = useAuthStore();
   const { success, error } = useToast();
   const router = useRouter();
-  const [role, setRole] = useState<'donor' | 'seeker' | 'hospital' | 'blood_bank'>('seeker');
   const [detectingLocation, setDetectingLocation] = useState(false);
 
   const {
@@ -49,7 +48,7 @@ export default function RegisterPage() {
       email: '',
       phone: '',
       password: '',
-      role: 'seeker',
+      role: 'individual',
       latitude: 3.139,
       longitude: 101.6869,
       location: 'Kuala Lumpur, Malaysia',
@@ -86,7 +85,6 @@ export default function RegisterPage() {
 
   const onSubmit = async (values: RegisterFormValues) => {
     try {
-      // 1. Register the user
       const regDto = {
         name: values.name,
         email: values.email,
@@ -101,17 +99,15 @@ export default function RegisterPage() {
       const res = await authService.register(regDto);
 
       if (res.success && res.data) {
-        // Log them in
         login(res.data.accessToken, res.data.refreshToken, res.data.user);
 
-        // 2. If donor, automatically create donor profile using bloodType
-        if (values.role === 'donor' && values.bloodType) {
+        if (values.role === 'individual' && values.bloodType) {
           try {
             await donorProfilesService.create({ bloodType: values.bloodType });
-            success('Account & Donor profile created successfully!');
+            success('Account & donor profile created successfully! You can donate and request blood.');
           } catch (donorErr) {
             console.error('Failed to create donor profile automatically:', donorErr);
-            success('Account created, but donor profile must be configured in settings.');
+            success('Account created successfully! You can set up your donor profile later in settings.');
           }
         } else {
           success('Account created successfully!');
@@ -182,23 +178,22 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
-              label="Choose Participant Role"
+              label="Choose Participant Type"
               options={[
-                { value: 'seeker', label: 'Blood Seeker (Individual)' },
-                { value: 'donor', label: 'Blood Donor (Individual)' },
+                { value: 'individual', label: 'Individual' },
                 { value: 'hospital', label: 'Hospital (Organization)' },
                 { value: 'blood_bank', label: 'Blood Bank (Organization)' },
+                { value: 'ngo', label: 'NGO (Organization)' },
               ]}
               error={errors.role?.message}
-              {...register('role', {
-                onChange: (e) => setRole(e.target.value),
-              })}
+              {...register('role')}
             />
 
-            {watchRole === 'donor' && (
+            {watchRole === 'individual' && (
               <Select
-                label="Blood Type"
+                label="Blood Type (to become a donor)"
                 options={[
+                  { value: '', label: 'Skip for now' },
                   { value: 'A+', label: 'A+' },
                   { value: 'A-', label: 'A-' },
                   { value: 'B+', label: 'B+' },
@@ -214,29 +209,36 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Dynamic Helper Info Box */}
           <div className="bg-red-50/30 rounded-2xl p-4 border border-red-100/50 text-xs text-gray-600">
-            {watchRole === 'donor' && (
+            {watchRole === 'individual' && (
               <p className="flex gap-2 items-start">
                 <Heart className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Individual Donor:</strong> Register to declare availability, manage eligibility, receive emergency alerts matching your blood type, and accept coordinate donation requests.
+                  <strong>Individual:</strong> You can both donate blood and create emergency blood requests from the same account. Select a blood type above to activate your donor profile, or skip and set it up later.
                 </span>
               </p>
             )}
-            {watchRole === 'seeker' && (
-              <p className="flex gap-2 items-start">
-                <ShieldAlert className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Individual Seeker:</strong> Create direct emergency request broadcasts, trace proximity-compatible donors, and coordinate blood supplies directly.
-                </span>
-              </p>
-            )}
-            {(watchRole === 'hospital' || watchRole === 'blood_bank') && (
+            {watchRole === 'hospital' && (
               <p className="flex gap-2 items-start">
                 <Award className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Supporting Organization:</strong> Register your facility to publish authorized local emergency requests, match proximity donors, and track local stocks.
+                  <strong>Hospital:</strong> Register your facility to publish authorized local emergency requests, match proximity donors, and coordinate blood supplies.
+                </span>
+              </p>
+            )}
+            {watchRole === 'blood_bank' && (
+              <p className="flex gap-2 items-start">
+                <Award className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Blood Bank:</strong> Register your blood bank to coordinate donors, manage availability, and create blood-related requests.
+                </span>
+              </p>
+            )}
+            {watchRole === 'ngo' && (
+              <p className="flex gap-2 items-start">
+                <Award className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>NGO:</strong> Register your organization to organize blood donation campaigns, recruit donors, coordinate volunteers, and create campaign-related requests.
                 </span>
               </p>
             )}

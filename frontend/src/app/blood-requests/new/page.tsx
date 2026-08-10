@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { MapPin, Navigation, Heart, PlusCircle, User, Activity, Building, Info } from 'lucide-react';
 
 const createRequestSchema = z.object({
-  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK']),
+  requestType: z.enum(['INDIVIDUAL', 'HOSPITAL', 'BLOOD_BANK', 'NGO']),
   bloodType: z.string().min(1, 'Please select a blood type'),
   unitsRequired: z.number().nullable().optional(),
   urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
@@ -92,6 +92,44 @@ const createRequestSchema = z.object({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Units Required is required for blood banks',
+        path: ['unitsRequired'],
+      });
+    }
+    if (!data.coordinatorName || data.coordinatorName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Coordinator name is required',
+        path: ['coordinatorName'],
+      });
+    }
+    if (!data.coordinatorContact || data.coordinatorContact.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Coordinator contact is required',
+        path: ['coordinatorContact'],
+      });
+    }
+  }
+
+  if (data.requestType === 'NGO') {
+    if (!data.hospitalName || data.hospitalName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Organization name is required',
+        path: ['hospitalName'],
+      });
+    }
+    if (!data.hospitalAddress || data.hospitalAddress.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Organization address is required',
+        path: ['hospitalAddress'],
+      });
+    }
+    if (data.unitsRequired === undefined || data.unitsRequired === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Units Required is required for NGO requests',
         path: ['unitsRequired'],
       });
     }
@@ -265,6 +303,7 @@ export default function NewBloodRequestPage() {
                 { value: 'INDIVIDUAL', label: 'Individual' },
                 { value: 'HOSPITAL', label: 'Hospital' },
                 { value: 'BLOOD_BANK', label: 'Blood Bank' },
+                { value: 'NGO', label: 'NGO' },
               ]}
               error={errors.requestType?.message}
               {...register('requestType')}
@@ -628,6 +667,98 @@ export default function NewBloodRequestPage() {
                     {...register('additionalNotes')}
                     rows={3}
                     placeholder="E.g. Leveling up stock reserves due to dengue seasonal spike..."
+                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 focus:border-red-500 outline-none placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 4. NGO FIELDS */}
+            {requestType === 'NGO' && (
+              <div className="space-y-4 border-t border-gray-100 pt-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Organization Name *"
+                    placeholder="E.g. Red Crescent Society"
+                    error={errors.hospitalName?.message}
+                    {...register('hospitalName')}
+                  />
+
+                  <Input
+                    label="Units Required *"
+                    type="number"
+                    placeholder="E.g. 10"
+                    error={errors.unitsRequired?.message}
+                    {...register('unitsRequired', { valueAsNumber: true })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Coordinator Name *"
+                    placeholder="E.g. Volunteer Coordinator"
+                    error={errors.coordinatorName?.message}
+                    {...register('coordinatorName')}
+                  />
+
+                  <Input
+                    label="Coordinator Contact *"
+                    placeholder="E.g. +60123456789"
+                    error={errors.coordinatorContact?.message}
+                    {...register('coordinatorContact')}
+                  />
+                </div>
+
+                <div className="border-t border-gray-50 pt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-700 tracking-wide uppercase">Campaign Location</h4>
+                      <p className="text-xs text-gray-400">Campaign venue coordinates for proximity donor matching</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={detectLocation}
+                      className="text-xs font-semibold text-red-600 border-red-100 hover:bg-red-50"
+                      isLoading={detectingLocation}
+                    >
+                      <Navigation className="h-3 w-3 mr-1" /> Detect Location GPS
+                    </Button>
+                  </div>
+
+                  <Input
+                    label="Campaign Address *"
+                    placeholder="E.g. Jalan Sultan, 50000 Kuala Lumpur"
+                    error={errors.hospitalAddress?.message}
+                    {...register('hospitalAddress')}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Latitude *"
+                      type="number"
+                      step="any"
+                      error={errors.latitude?.message}
+                      {...register('latitude', { valueAsNumber: true })}
+                    />
+
+                    <Input
+                      label="Longitude *"
+                      type="number"
+                      step="any"
+                      error={errors.longitude?.message}
+                      {...register('longitude', { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Additional Notes</label>
+                  <textarea
+                    {...register('additionalNotes')}
+                    rows={3}
+                    placeholder="E.g. Blood donation campaign for flood victims..."
                     className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 focus:border-red-500 outline-none placeholder:text-gray-400"
                   />
                 </div>

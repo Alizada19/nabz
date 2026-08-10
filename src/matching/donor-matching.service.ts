@@ -135,7 +135,7 @@ export class DonorMatchingService {
         email: dto.email,
         phone: dto.phone,
         password: passwordHash,
-        role: 'donor',
+        role: 'individual',
         location: dto.location || null,
         latitude: dto.latitude || null,
         longitude: dto.longitude || null,
@@ -154,14 +154,14 @@ export class DonorMatchingService {
     });
 
     return {
-      ...user,
+      ...this.toSafeUser(user),
       donorProfile,
     };
   }
 
   async findDonorById(id: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id, role: 'donor' },
+      where: { id, role: 'individual', donorProfile: { isNot: null } },
       include: {
         donorProfile: {
           include: { bloodType: true },
@@ -171,7 +171,7 @@ export class DonorMatchingService {
     if (!user) {
       throw new NotFoundException('Donor not found');
     }
-    return user;
+    return this.toSafeUser(user);
   }
 
   async updateDonor(id: string, dto: any) {
@@ -211,7 +211,7 @@ export class DonorMatchingService {
     });
 
     return {
-      ...updatedUser,
+      ...this.toSafeUser(updatedUser),
       donorProfile: updatedProfile,
     };
   }
@@ -228,7 +228,8 @@ export class DonorMatchingService {
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = {
-      role: 'donor',
+      role: 'individual',
+      donorProfile: { isNot: null },
     };
 
     if (search) {
@@ -295,7 +296,7 @@ export class DonorMatchingService {
     ]);
 
     return {
-      items,
+      items: items.map((u) => this.toSafeUser(u)),
       meta: {
         total,
         page: Number(page),
@@ -303,5 +304,10 @@ export class DonorMatchingService {
         totalPages: Math.ceil(total / Number(limit)),
       },
     };
+  }
+
+  private toSafeUser(user: any) {
+    const { password, refreshToken, ...safe } = user;
+    return safe;
   }
 }

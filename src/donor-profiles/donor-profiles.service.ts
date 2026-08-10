@@ -22,11 +22,7 @@ export class DonorProfilesService {
     private readonly bloodTypesService: BloodTypesService,
   ) {}
 
-  async createForUser(userId: string, userRole: Role, dto: CreateDonorProfileDto) {
-    if (userRole !== Role.donor) {
-      throw new ForbiddenException('Only donors can create a donor profile');
-    }
-
+  async createForUser(userId: string, dto: CreateDonorProfileDto) {
     const existing = await this.prisma.donorProfile.findUnique({
       where: { userId },
     });
@@ -51,6 +47,13 @@ export class DonorProfilesService {
       throw new NotFoundException('Donor profile not found');
     }
     return profile;
+  }
+
+  async hasDonorProfile(userId: string): Promise<boolean> {
+    const profile = await this.prisma.donorProfile.findUnique({
+      where: { userId },
+    });
+    return !!profile;
   }
 
   async update(userId: string, dto: UpdateDonorProfileDto) {
@@ -79,10 +82,21 @@ export class DonorProfilesService {
     });
   }
 
-  /**
-   * Updates a donor's live location. Used when the mobile app reports GPS
-   * updates so matching can find the most recent position.
-   */
+  async removeForUser(userId: string) {
+    const profile = await this.prisma.donorProfile.findUnique({
+      where: { userId },
+    });
+    if (!profile) {
+      throw new NotFoundException('Donor profile not found');
+    }
+
+    await this.prisma.donorProfile.delete({
+      where: { userId },
+    });
+
+    return { message: 'Donor profile removed. You can still create blood requests.' };
+  }
+
   async updateLocation(userId: string, latitude: number, longitude: number) {
     return this.prisma.user.update({
       where: { id: userId },
@@ -91,12 +105,12 @@ export class DonorProfilesService {
     });
   }
 
-  // Find all donors with filters
   async findAllDonors(query: QueryDonorsDto) {
     const { skip, limit = 10, bloodType, isAvailable, eligibility, location, search } = query;
 
     const where: any = {
-      role: Role.donor,
+      role: Role.individual,
+      donorProfile: { isNot: null },
     };
 
     if (location) {
@@ -107,6 +121,7 @@ export class DonorProfilesService {
       const isAvailBool = isAvailable === 'true';
       where.isAvailable = isAvailBool;
       where.donorProfile = {
+        ...where.donorProfile,
         availableStatus: isAvailBool,
       };
     }
@@ -132,7 +147,6 @@ export class DonorProfilesService {
       ];
     }
 
-    // Load initial users
     const users = await this.prisma.user.findMany({
       where,
       include: {
@@ -145,13 +159,13 @@ export class DonorProfilesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter by eligibility programmatically if selected
-    // Eligible: either lastDonationDate is null or > 56 days ago
-    let filteredUsers = users;
+    const safeUsers = users.map((u) => this.toSafeUser(u));
+
+    let filteredUsers = safeUsers;
     if (eligibility) {
       const now = new Date();
       const fiftySixDaysAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
-      filteredUsers = users.filter((u) => {
+      filteredUsers = safeUsers.filter((u: any) => {
         const lastDonation = u.donorProfile?.lastDonationDate;
         const isEligible = !lastDonation || new Date(lastDonation) < fiftySixDaysAgo;
         return eligibility === 'eligible' ? isEligible : !isEligible;
@@ -183,10 +197,10 @@ export class DonorProfilesService {
         },
       },
     });
-    if (!user || user.role !== Role.donor) {
+    if (!user || !user.donorProfile) {
       throw new NotFoundException('Donor not found');
     }
-    return user;
+    return this.toSafeUser(user);
   }
 
   async createDonorAdmin(dto: CreateDonorAdminDto) {
@@ -208,7 +222,7 @@ export class DonorProfilesService {
         email: dto.email,
         phone: dto.phone,
         password: hashedPassword,
-        role: Role.donor,
+        role: Role.individual,
         location: dto.location || 'Kuala Lumpur',
         isAvailable: dto.isAvailable !== undefined ? dto.isAvailable : true,
       },
@@ -228,8 +242,9 @@ export class DonorProfilesService {
       },
     });
 
+    const safeUser = this.toSafeUser(user);
     return {
-      ...user,
+      ...safeUser,
       donorProfile,
     };
   }
@@ -254,7 +269,7 @@ export class DonorProfilesService {
       },
     });
 
-    let bloodTypeId = user.donorProfile?.bloodTypeId;
+    let bloodTypeId = (user as any).donorProfile?.bloodTypeId;
     if (dto.bloodType) {
       const bt = await this.bloodTypesService.findByName(dto.bloodType);
       bloodTypeId = bt.id;
@@ -276,8 +291,9 @@ export class DonorProfilesService {
       },
     });
 
+    const safeUser = this.toSafeUser(updatedUser);
     return {
-      ...updatedUser,
+      ...safeUser,
       donorProfile,
     };
   }
@@ -287,5 +303,10 @@ export class DonorProfilesService {
     return this.prisma.user.delete({
       where: { id },
     });
+  }
+
+  private toSafeUser(user: any) {
+    const { password, refreshToken, ...safe } = user;
+    return safe;
   }
 }

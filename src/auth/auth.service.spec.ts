@@ -17,7 +17,7 @@ describe('AuthService', () => {
     email: 'ahmad@example.com',
     phone: '+60123456789',
     password: 'hashed-password',
-    role: Role.donor,
+    role: Role.individual,
     refreshToken: null,
   };
 
@@ -49,7 +49,7 @@ describe('AuthService', () => {
           email: 'ahmad@example.com',
           phone: '+60123456789',
           password: 'StrongP@ss1',
-          role: Role.donor,
+          role: Role.individual,
         }),
       ).rejects.toThrow(ConflictException);
     });
@@ -63,7 +63,7 @@ describe('AuthService', () => {
         email: 'ahmad@example.com',
         phone: '+60123456789',
         password: 'StrongP@ss1',
-        role: Role.donor,
+        role: Role.individual,
       });
 
       expect(bcrypt.hash).toHaveBeenCalledWith('StrongP@ss1', 10);

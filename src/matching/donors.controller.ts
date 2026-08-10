@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DonorMatchingService } from './donor-matching.service';
 import { NearbyDonorsQueryDto } from './dto/nearby-donors-query.dto';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('Donors')
 @ApiBearerAuth('access-token')
@@ -44,38 +46,43 @@ export class DonorsController {
     };
   }
 
-  // --- CRUD Donors Management Endpoints ---
+  // --- CRUD Donors Management Endpoints (Admin only) ---
 
   @Get()
-  @ApiOperation({ summary: 'List individual blood donors with search and filters' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'List individual blood donors with search and filters (Admin)' })
   async listDonors(@Query() query: any) {
     const data = await this.donorMatchingService.listDonors(query);
     return { message: 'Donors list retrieved successfully', data };
   }
 
   @Post()
-  @ApiOperation({ summary: 'Register a new individual donor' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Register a new individual donor (Admin only)' })
   async registerDonor(@Body() body: any) {
     const data = await this.donorMatchingService.registerDonor(body);
     return { message: 'Donor registered successfully', data };
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get details of an individual donor' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Get details of an individual donor (Admin only)' })
   async findOne(@Param('id') id: string) {
     const data = await this.donorMatchingService.findDonorById(id);
     return { message: 'Donor details retrieved successfully', data };
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Edit an individual donor details' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Edit an individual donor details (Admin only)' })
   async update(@Param('id') id: string, @Body() body: any) {
     const data = await this.donorMatchingService.updateDonor(id, body);
     return { message: 'Donor updated successfully', data };
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete an individual donor' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Delete an individual donor (Admin only)' })
   async remove(@Param('id') id: string) {
     await this.donorMatchingService.deleteDonor(id);
     return { message: 'Donor deleted successfully' };

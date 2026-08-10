@@ -2,7 +2,7 @@ import { client } from './client';
 import { ApiResponse, BloodRequest, PaginatedResult } from './types';
 
 export interface CreateBloodRequestDto {
-  requestType?: 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK';
+  requestType?: 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK' | 'NGO';
   bloodType: string;
   hospitalName?: string | null;
   hospitalAddress?: string | null;
@@ -18,7 +18,7 @@ export interface CreateBloodRequestDto {
 }
 
 export interface UpdateBloodRequestDto {
-  requestType?: 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK';
+  requestType?: 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK' | 'NGO';
   bloodType?: string;
   hospitalName?: string | null;
   hospitalAddress?: string | null;

@@ -1,10 +1,10 @@
-export type Role = 'admin' | 'donor' | 'seeker' | 'hospital' | 'blood_bank';
+export type Role = 'admin' | 'individual' | 'hospital' | 'blood_bank' | 'ngo';
 
 export type RequestStatus = 'pending' | 'matched' | 'completed' | 'cancelled';
 
 export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
 
-export type RequestType = 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK';
+export type RequestType = 'INDIVIDUAL' | 'HOSPITAL' | 'BLOOD_BANK' | 'NGO';
 
 export interface User {
   id: string;
@@ -41,7 +41,7 @@ export interface DonorProfile {
 
 export interface BloodRequest {
   id: string;
-  seekerId: string;
+  requesterId: string;
   bloodTypeId: string;
   requestType: RequestType;
   hospitalName?: string | null;
@@ -61,7 +61,7 @@ export interface BloodRequest {
 
   createdAt: string;
   updatedAt: string;
-  seeker?: User;
+  requester?: User;
   bloodType?: BloodType;
 }
 

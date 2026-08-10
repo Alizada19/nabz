@@ -16,11 +16,11 @@ describe('Blood Donation API (e2e)', () => {
   let prisma: PrismaService;
 
   const testUser = {
-    name: 'E2E Test Donor',
-    email: `e2e-donor-${Date.now()}@example.com`,
+    name: 'E2E Test Individual',
+    email: `e2e-individual-${Date.now()}@example.com`,
     phone: `+601${Math.floor(10000000 + Math.random() * 89999999)}`,
     password: 'StrongP@ss123',
-    role: 'donor',
+    role: 'individual',
     latitude: 3.139,
     longitude: 101.6869,
   };
@@ -46,7 +46,7 @@ describe('Blood Donation API (e2e)', () => {
   });
 
   describe('/api/auth/register (POST)', () => {
-    it('registers a new donor and returns tokens', async () => {
+    it('registers a new individual and returns tokens', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/register')
         .send(testUser)
@@ -141,6 +141,45 @@ describe('Blood Donation API (e2e)', () => {
         .expect(200);
 
       expect(res.body.data.length).toBeGreaterThanOrEqual(8);
+    });
+  });
+
+  describe('Multi-role acceptance (Individual = Donor + Blood Seeker)', () => {
+    it('one Individual can create a donor profile AND still create a blood request', async () => {
+      // 1. Create DonorProfile
+      const donorRes = await request(app.getHttpServer())
+        .post('/api/donor-profiles')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ bloodType: 'A+' })
+        .expect(201);
+
+      expect(donorRes.body.success).toBe(true);
+      expect(donorRes.body.data.userId).toBeDefined();
+
+      // 2. The same Individual account creates a blood request
+      const requestRes = await request(app.getHttpServer())
+        .post('/api/blood-requests')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          requestType: 'INDIVIDUAL',
+          bloodType: 'A+',
+          latitude: 3.139,
+          longitude: 101.6869,
+          unitsRequired: 1,
+        })
+        .expect(201);
+
+      expect(requestRes.body.success).toBe(true);
+
+      // 3. DonorProfile still exists and remains active after the request
+      const profileRes = await request(app.getHttpServer())
+        .get('/api/donor-profiles/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(profileRes.body.success).toBe(true);
+      expect(profileRes.body.data.userId).toBeDefined();
+      expect(profileRes.body.data.availableStatus).toBe(true);
     });
   });
 });

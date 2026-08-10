@@ -17,7 +17,7 @@ export class BloodRequestsController {
   constructor(private readonly bloodRequestsService: BloodRequestsService) {}
 
   @Post()
-  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
+  @Roles(Role.individual, Role.hospital, Role.blood_bank, Role.ngo, Role.admin)
   @ApiOperation({
     summary: 'Create an emergency blood request',
     description:
@@ -40,8 +40,8 @@ export class BloodRequestsController {
   }
 
   @Get('my')
-  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
-  @ApiOperation({ summary: "List the current seeker's blood requests (paginated)" })
+  @Roles(Role.individual, Role.hospital, Role.blood_bank, Role.ngo, Role.admin)
+  @ApiOperation({ summary: "List the current requester's blood requests (paginated)" })
   async findMine(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: QueryBloodRequestDto,
@@ -61,7 +61,7 @@ export class BloodRequestsController {
   }
 
   @Patch(':id')
-  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
+  @Roles(Role.individual, Role.hospital, Role.blood_bank, Role.ngo, Role.admin)
   @ApiOperation({ summary: 'Update/Edit blood request details' })
   async update(
     @CurrentUser() user: AuthenticatedUser,
@@ -73,7 +73,7 @@ export class BloodRequestsController {
   }
 
   @Delete(':id')
-  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
+  @Roles(Role.individual, Role.hospital, Role.blood_bank, Role.ngo, Role.admin)
   @ApiOperation({ summary: 'Delete blood request' })
   async remove(
     @CurrentUser() user: AuthenticatedUser,
@@ -84,7 +84,7 @@ export class BloodRequestsController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.seeker, Role.hospital, Role.blood_bank, Role.admin)
+  @Roles(Role.individual, Role.hospital, Role.blood_bank, Role.ngo, Role.admin)
   @ApiOperation({ summary: 'Update the status of a blood request' })
   async updateStatus(
     @CurrentUser() user: AuthenticatedUser,

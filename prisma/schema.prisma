@@ -8,11 +8,11 @@ datasource db {
 }
 
 enum Role {
-  admin
-  donor
-  seeker
+  individual
   hospital
   blood_bank
+  ngo
+  admin
 }
 
 enum RequestStatus {
@@ -33,6 +33,7 @@ enum RequestType {
   INDIVIDUAL
   HOSPITAL
   BLOOD_BANK
+  NGO
 }
 
 model User {
@@ -41,7 +42,7 @@ model User {
   email         String   @unique
   phone         String   @unique
   password      String
-  role          Role     @default(seeker)
+  role          Role     @default(individual)
   latitude      Float?
   longitude     Float?
   location      String?
@@ -89,7 +90,7 @@ model DonorProfile {
 
 model BloodRequest {
   id                 String        @id @default(uuid())
-  seekerId           String
+  requesterId        String
   bloodTypeId        String
   requestType        RequestType   @default(INDIVIDUAL)
   hospitalName       String?
@@ -100,7 +101,6 @@ model BloodRequest {
   urgencyLevel       UrgencyLevel  @default(medium)
   status             RequestStatus @default(pending)
 
-  // Custom fields based on requestType
   requesterPhone     String?
   preferredHospital  String?
   additionalNotes    String?
@@ -110,7 +110,7 @@ model BloodRequest {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  seeker    User      @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+  requester User      @relation(fields: [requesterId], references: [id], onDelete: Cascade)
   bloodType BloodType @relation(fields: [bloodTypeId], references: [id])
 
   @@index([bloodTypeId])

@@ -18,22 +18,18 @@ export class DonorProfilesController {
   constructor(private readonly donorProfilesService: DonorProfilesService) {}
 
   @Post()
-  @Roles(Role.donor)
-  @ApiOperation({ summary: 'Create a donor profile for the current donor' })
+  @Roles(Role.individual, Role.admin)
+  @ApiOperation({ summary: 'Create a donor profile for the current individual' })
   async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateDonorProfileDto,
   ) {
-    const data = await this.donorProfilesService.createForUser(
-      user.id,
-      user.role,
-      dto,
-    );
+    const data = await this.donorProfilesService.createForUser(user.id, dto);
     return { message: 'Donor profile created successfully', data };
   }
 
   @Get('me')
-  @Roles(Role.donor)
+  @Roles(Role.individual, Role.admin)
   @ApiOperation({ summary: 'Get the current donor profile' })
   async getMine(@CurrentUser() user: AuthenticatedUser) {
     const data = await this.donorProfilesService.findByUserId(user.id);
@@ -41,7 +37,7 @@ export class DonorProfilesController {
   }
 
   @Patch('me')
-  @Roles(Role.donor)
+  @Roles(Role.individual, Role.admin)
   @ApiOperation({
     summary: 'Update blood type, availability, or last donation date',
   })
@@ -54,7 +50,7 @@ export class DonorProfilesController {
   }
 
   @Patch('me/location')
-  @Roles(Role.donor)
+  @Roles(Role.individual, Role.admin)
   @ApiOperation({ summary: "Update the donor's current GPS location" })
   async updateLocation(
     @CurrentUser() user: AuthenticatedUser,
@@ -68,7 +64,14 @@ export class DonorProfilesController {
     return { message: 'Location updated successfully', data };
   }
 
-  // Admin/Seeker/Hospital/Blood Bank can view general list of donors
+  @Delete('me')
+  @Roles(Role.individual, Role.admin)
+  @ApiOperation({ summary: 'Remove donor profile (stop being an active donor)' })
+  async removeMine(@CurrentUser() user: AuthenticatedUser) {
+    const data = await this.donorProfilesService.removeForUser(user.id);
+    return { message: 'Donor profile removed successfully', data };
+  }
+
   @Get('all-donors')
   @ApiOperation({ summary: 'List all individual blood donors (paginated with filters)' })
   async findAllDonors(@Query() query: QueryDonorsDto) {
@@ -76,7 +79,6 @@ export class DonorProfilesController {
     return { message: 'Donors retrieved successfully', data };
   }
 
-  // Get a single donor details
   @Get('all-donors/:id')
   @ApiOperation({ summary: 'Get details of a specific donor' })
   async findOneDonor(@Param('id') id: string) {
@@ -84,25 +86,22 @@ export class DonorProfilesController {
     return { message: 'Donor retrieved successfully', data };
   }
 
-  // Admin/User can register an individual donor
   @Post('all-donors')
-  @Roles(Role.admin, Role.seeker, Role.hospital, Role.blood_bank)
-  @ApiOperation({ summary: 'Register/create a new individual donor' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Register/create a new individual donor (Admin only)' })
   async createDonor(@Body() dto: CreateDonorAdminDto) {
     const data = await this.donorProfilesService.createDonorAdmin(dto);
     return { message: 'Donor registered successfully', data };
   }
 
-  // Edit an individual donor
   @Patch('all-donors/:id')
-  @Roles(Role.admin, Role.seeker, Role.hospital, Role.blood_bank)
-  @ApiOperation({ summary: 'Update/Edit donor profile details' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Update/Edit donor profile details (Admin only)' })
   async updateDonor(@Param('id') id: string, @Body() dto: UpdateDonorAdminDto) {
     const data = await this.donorProfilesService.updateDonorAdmin(id, dto);
     return { message: 'Donor updated successfully', data };
   }
 
-  // Delete an individual donor
   @Delete('all-donors/:id')
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Delete a donor user and profile (Admin only)' })

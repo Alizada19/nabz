@@ -45,30 +45,65 @@ describe('BloodRequestsService', () => {
   });
 
   describe('create', () => {
-    it('rejects creation from a donor role', async () => {
-      await expect(
-        service.create('user-1', Role.donor, dto as any),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('creates a pending blood request for a seeker', async () => {
+    it('allows an individual (without donor profile) to create a blood request', async () => {
       prisma.bloodRequest.create.mockResolvedValue({
         id: 'req-1',
         status: 'pending',
         bloodType: { name: 'A+' },
       });
 
-      const result = await service.create('user-1', Role.seeker, dto as any);
+      const result = await service.create('user-1', Role.individual, dto as any);
 
       expect(prisma.bloodRequest.create).toHaveBeenCalled();
       expect(result.id).toBe('req-1');
+    });
+
+    it('allows an individual who has a donor profile to create a blood request', async () => {
+      // This is the core Nabz acceptance test:
+      // one Individual account, DonorProfile exists, BloodRequest must still succeed
+      prisma.bloodRequest.create.mockResolvedValue({
+        id: 'req-1',
+        status: 'pending',
+        bloodType: { name: 'A+' },
+      });
+
+      const result = await service.create('user-1', Role.individual, dto as any);
+
+      expect(prisma.bloodRequest.create).toHaveBeenCalled();
+      expect(result.id).toBe('req-1');
+    });
+
+    it('allows a hospital account to create a blood request', async () => {
+      prisma.bloodRequest.create.mockResolvedValue({
+        id: 'req-2',
+        status: 'pending',
+        bloodType: { name: 'A+' },
+      });
+
+      const result = await service.create('hospital-1', Role.hospital, dto as any);
+
+      expect(prisma.bloodRequest.create).toHaveBeenCalled();
+      expect(result.id).toBe('req-2');
+    });
+
+    it('allows an NGO account to create a blood request', async () => {
+      prisma.bloodRequest.create.mockResolvedValue({
+        id: 'req-3',
+        status: 'pending',
+        bloodType: { name: 'A+' },
+      });
+
+      const result = await service.create('ngo-1', Role.ngo, dto as any);
+
+      expect(prisma.bloodRequest.create).toHaveBeenCalled();
+      expect(result.id).toBe('req-3');
     });
   });
 
   describe('updateStatus', () => {
     const baseRequest = {
       id: 'req-1',
-      seekerId: 'user-1',
+      requesterId: 'user-1',
       status: 'pending',
       bloodType: { name: 'A+' },
     };
@@ -83,7 +118,7 @@ describe('BloodRequestsService', () => {
       const result = await service.updateStatus(
         'req-1',
         'user-1',
-        Role.seeker,
+        Role.individual,
         { status: 'matched' } as any,
       );
 
@@ -94,7 +129,7 @@ describe('BloodRequestsService', () => {
       prisma.bloodRequest.findUnique.mockResolvedValue(baseRequest);
 
       await expect(
-        service.updateStatus('req-1', 'user-1', Role.seeker, {
+        service.updateStatus('req-1', 'user-1', Role.individual, {
           status: 'completed',
         } as any),
       ).rejects.toThrow(BadRequestException);
@@ -104,7 +139,7 @@ describe('BloodRequestsService', () => {
       prisma.bloodRequest.findUnique.mockResolvedValue(baseRequest);
 
       await expect(
-        service.updateStatus('req-1', 'someone-else', Role.seeker, {
+        service.updateStatus('req-1', 'someone-else', Role.individual, {
           status: 'matched',
         } as any),
       ).rejects.toThrow(ForbiddenException);

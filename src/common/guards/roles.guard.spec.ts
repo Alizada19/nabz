@@ -21,21 +21,21 @@ describe('RolesGuard', () => {
 
   it('allows access when no roles are required', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
-    expect(guard.canActivate(buildContext({ role: Role.donor }))).toBe(true);
+    expect(guard.canActivate(buildContext({ role: Role.individual }))).toBe(true);
   });
 
   it('allows access when the user role matches a required role', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.donor]);
-    expect(guard.canActivate(buildContext({ role: Role.donor }))).toBe(true);
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.individual]);
+    expect(guard.canActivate(buildContext({ role: Role.individual }))).toBe(true);
   });
 
   it('denies access when the user role does not match', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.admin]);
-    expect(guard.canActivate(buildContext({ role: Role.donor }))).toBe(false);
+    expect(guard.canActivate(buildContext({ role: Role.individual }))).toBe(false);
   });
 
   it('denies access when there is no authenticated user', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.donor]);
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.individual]);
     expect(guard.canActivate(buildContext(undefined))).toBe(false);
   });
 });

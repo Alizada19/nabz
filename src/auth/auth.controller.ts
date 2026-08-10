@@ -22,7 +22,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user (donor, seeker, or admin)' })
+  @ApiOperation({ summary: 'Register a new user (individual, hospital, blood bank, NGO, or admin)' })
   @ApiResponse({ status: 201, description: 'User registered', type: AuthResponseDto })
   @ApiResponse({ status: 409, description: 'Email or phone already in use' })
   async register(@Body() dto: RegisterDto) {

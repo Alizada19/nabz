@@ -31,8 +31,8 @@ export class RegisterDto {
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 
-  @ApiProperty({ enum: Role, example: Role.donor })
-  @IsEnum(Role, { message: 'Role must be one of: admin, donor, seeker, hospital, blood_bank' })
+  @ApiProperty({ enum: Role, example: Role.individual })
+  @IsEnum(Role, { message: 'Role must be one of: individual, hospital, blood_bank, ngo, admin' })
   role: Role;
 
   @ApiProperty({ example: 3.139, required: false })

@@ -26,21 +26,23 @@ export class BloodRequestsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(seekerId: string, seekerRole: Role, dto: CreateBloodRequestDto) {
-    if (
-      seekerRole !== Role.seeker &&
-      seekerRole !== Role.hospital &&
-      seekerRole !== Role.blood_bank &&
-      seekerRole !== Role.admin
-    ) {
-      throw new ForbiddenException('Only seekers, hospitals, or blood banks can create blood requests');
+  async create(requesterId: string, requesterRole: Role, dto: CreateBloodRequestDto) {
+    const allowedRoles: Role[] = [
+      Role.individual,
+      Role.hospital,
+      Role.blood_bank,
+      Role.ngo,
+      Role.admin,
+    ];
+    if (!allowedRoles.includes(requesterRole)) {
+      throw new ForbiddenException('Your account type is not permitted to create blood requests');
     }
 
     const bloodType = await this.bloodTypesService.findByName(dto.bloodType);
 
     const request = await this.prisma.bloodRequest.create({
       data: {
-        seekerId,
+        requesterId,
         bloodTypeId: bloodType.id,
         requestType: dto.requestType || 'INDIVIDUAL',
         hospitalName: dto.hospitalName || null,
@@ -57,7 +59,7 @@ export class BloodRequestsService {
       },
       include: {
         bloodType: true,
-        seeker: {
+        requester: {
           select: {
             id: true,
             name: true,
@@ -67,8 +69,6 @@ export class BloodRequestsService {
       },
     });
 
-    // Fire-and-forget matching + notification workflow if coordinates are specified.
-    // Errors here should never fail the request-creation response to the seeker.
     if (dto.latitude !== undefined && dto.longitude !== undefined) {
       this.matchAndNotify(request.id, bloodType.name, dto.latitude, dto.longitude).catch(
         (err) =>
@@ -145,7 +145,7 @@ export class BloodRequestsService {
         { hospitalName: { contains: search, mode: 'insensitive' } },
         { hospitalAddress: { contains: search, mode: 'insensitive' } },
         { preferredHospital: { contains: search, mode: 'insensitive' } },
-        { seeker: { name: { contains: search, mode: 'insensitive' } } },
+        { requester: { name: { contains: search, mode: 'insensitive' } } },
         { additionalNotes: { contains: search, mode: 'insensitive' } },
       ];
     }
@@ -155,7 +155,7 @@ export class BloodRequestsService {
         where,
         include: {
           bloodType: true,
-          seeker: {
+          requester: {
             select: {
               id: true,
               name: true,
@@ -184,16 +184,16 @@ export class BloodRequestsService {
     };
   }
 
-  async findMyRequests(seekerId: string, query: QueryBloodRequestDto) {
+  async findMyRequests(requesterId: string, query: QueryBloodRequestDto) {
     const { skip, limit = 10, status } = query;
-    const where = { seekerId, ...(status ? { status } : {}) };
+    const where = { requesterId, ...(status ? { status } : {}) };
 
     const [items, total] = await Promise.all([
       this.prisma.bloodRequest.findMany({
         where,
         include: {
           bloodType: true,
-          seeker: {
+          requester: {
             select: {
               id: true,
               name: true,
@@ -219,12 +219,12 @@ export class BloodRequestsService {
     };
   }
 
-  async findOne(id: string, requesterId: string, requesterRole: Role) {
+  async findOne(id: string, requesterUserId: string, requesterRole: Role) {
     const request = await this.prisma.bloodRequest.findUnique({
       where: { id },
       include: {
         bloodType: true,
-        seeker: {
+        requester: {
           select: {
             id: true,
             name: true,
@@ -239,20 +239,20 @@ export class BloodRequestsService {
     if (!request) {
       throw new NotFoundException('Blood request not found');
     }
-    if (requesterRole !== Role.admin && request.seekerId !== requesterId) {
+    if (requesterRole !== Role.admin && request.requesterId !== requesterUserId) {
       throw new ForbiddenException('You do not have access to this request');
     }
     return request;
   }
 
-  async update(id: string, requesterId: string, requesterRole: Role, dto: UpdateBloodRequestDto) {
+  async update(id: string, requesterUserId: string, requesterRole: Role, dto: UpdateBloodRequestDto) {
     const request = await this.prisma.bloodRequest.findUnique({
       where: { id },
     });
     if (!request) {
       throw new NotFoundException('Blood request not found');
     }
-    if (requesterRole !== Role.admin && request.seekerId !== requesterId) {
+    if (requesterRole !== Role.admin && request.requesterId !== requesterUserId) {
       throw new ForbiddenException('You do not have access to edit this request');
     }
 
@@ -282,7 +282,7 @@ export class BloodRequestsService {
       },
       include: {
         bloodType: true,
-        seeker: {
+        requester: {
           select: {
             id: true,
             name: true,
@@ -293,14 +293,14 @@ export class BloodRequestsService {
     });
   }
 
-  async remove(id: string, requesterId: string, requesterRole: Role) {
+  async remove(id: string, requesterUserId: string, requesterRole: Role) {
     const request = await this.prisma.bloodRequest.findUnique({
       where: { id },
     });
     if (!request) {
       throw new NotFoundException('Blood request not found');
     }
-    if (requesterRole !== Role.admin && request.seekerId !== requesterId) {
+    if (requesterRole !== Role.admin && request.requesterId !== requesterUserId) {
       throw new ForbiddenException('You do not have access to delete this request');
     }
 
@@ -311,7 +311,7 @@ export class BloodRequestsService {
 
   async updateStatus(
     id: string,
-    requesterId: string,
+    requesterUserId: string,
     requesterRole: Role,
     dto: UpdateBloodRequestStatusDto,
   ) {
@@ -322,7 +322,7 @@ export class BloodRequestsService {
       throw new NotFoundException('Blood request not found');
     }
 
-    if (requesterRole !== Role.admin && request.seekerId !== requesterId) {
+    if (requesterRole !== Role.admin && request.requesterId !== requesterUserId) {
       throw new ForbiddenException('You do not have access to this request');
     }
 
@@ -333,7 +333,7 @@ export class BloodRequestsService {
       data: { status: dto.status },
       include: {
         bloodType: true,
-        seeker: {
+        requester: {
           select: {
             id: true,
             name: true,
