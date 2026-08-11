@@ -3,15 +3,16 @@ FROM node:24.18.1-slim AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN npm install -g pnpm@11
+
+COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN npx prisma generate
-RUN npm run build
+RUN pnpm build
 
 # ---- Production stage ----
 FROM node:24.18.1-slim AS production
@@ -20,10 +21,13 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN npm install -g pnpm@11
+
+COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 
-RUN npm ci --omit=dev && npx prisma generate
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts \
+    && npx --yes prisma@5 generate
 
 COPY --from=builder /app/dist ./dist
 

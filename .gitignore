@@ -1,6 +1,27 @@
-node_modules
-dist
-coverage
-.env
+# Dependencies
+node_modules/
+api/node_modules/
+frontend/node_modules/
+
+# Build outputs
+api/dist/
+frontend/.next/
+frontend/out/
+coverage/
+
+# Environment secrets (example files are committed)
+api/.env
+frontend/.env.local
+
+# Logs
 *.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Misc
 .DS_Store
+*.pem
+.vercel
+
+# TypeScript
+*.tsbuildinfo

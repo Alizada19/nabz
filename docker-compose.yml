@@ -21,7 +21,8 @@ services:
 
   migrate:
     build:
-      context: .
+      context: ./api
+      dockerfile: Dockerfile
       target: builder
     container_name: blood-donation-migrate
     depends_on:
@@ -34,7 +35,8 @@ services:
 
   api:
     build:
-      context: .
+      context: ./api
+      dockerfile: Dockerfile
       target: production
     container_name: blood-donation-api
     restart: unless-stopped
@@ -58,6 +60,22 @@ services:
       THROTTLE_LIMIT: 20
     ports:
       - '3000:3000'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Inlined by Next.js at build time; override to point at the deployed API.
+        NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+    container_name: blood-donation-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+    depends_on:
+      - api
+    ports:
+      - '3001:3000'
 
 volumes:
   postgres_data:

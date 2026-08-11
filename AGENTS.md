@@ -641,17 +641,17 @@ Do not assume the current implementation works the way its filenames suggest.
 
 Before declaring a feature complete, run appropriate tests.
 
-At minimum for major backend changes:
+At minimum for major backend changes (run from `api/`):
 
 ```bash
 npx tsc --noEmit
-npm test
+pnpm test
 ```
 
-For frontend changes:
+For frontend changes (run from `frontend/`):
 
 ```bash
-npm run build
+pnpm build
 ```
 
 For user-facing flows:
@@ -813,7 +813,7 @@ Before installing dependencies:
 2. Check package.json and the existing lockfile.
 3. Check whether dependencies are already installed.
 4. Use the package manager and lockfile already used by the project.
-5. Prefer `npm ci` when package-lock.json exists and dependencies need to be installed.
+5. Prefer `pnpm install --frozen-lockfile` when `pnpm-lock.yaml` exists and dependencies need to be installed (the repo is two independent pnpm projects: `api/` and `frontend/`; there is no pnpm workspace).
 6. Do not upgrade dependencies unless explicitly required.
 7. Do not replace package managers.
 8. Do not modify lockfiles unnecessarily.

@@ -5,6 +5,7 @@
   "author": "",
   "private": true,
   "license": "MIT",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "postinstall": "prisma generate",
     "build": "prisma generate && nest build",
@@ -82,5 +83,14 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt",
+      "prisma"
+    ]
   }
 }
