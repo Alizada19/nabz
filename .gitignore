@@ -1,27 +1,100 @@
-# Dependencies
-node_modules/
-api/node_modules/
-frontend/node_modules/
+#api
+AGENTS.md
+api/node_modules
+api/pnpm-lock.yaml
+api/.env
 
-# Build outputs
-api/dist/
+
+
+#frontend
+frontend/.env.local
+frontend/node_modules
+frontend/.pnp
+frontend/.pnp.*
+frontend/.yarn/*
+frontend/!.yarn/patches
+frontend/!.yarn/plugins
+frontend/!.yarn/releases
+frontend/!.yarn/versions
+
+# testing
+frontend/coverage
+
+# next.js
 frontend/.next/
 frontend/out/
-coverage/
 
-# Environment secrets (example files are committed)
-api/.env
-frontend/.env.local
+# production
+frontend/build
 
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
+# misc
+frontend/.DS_Store
+frontend/*.pem
 
-# Misc
-.DS_Store
-*.pem
-.vercel
+# debug
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
 
-# TypeScript
-*.tsbuildinfo
+# env files (can opt-in for committing if needed)
+frontend/.env*
+frontend/!.env.example
+
+# vercel
+frontend/.vercel
+
+# typescript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+
+
+
+
+
+# Miscellaneous
+mobile/*.class
+mobile/*.log
+mobile/*.pyc
+mobile/*.swp
+mobile/.DS_Store
+mobile/.atom/
+mobile/.build/
+mobile/.buildlog/
+mobile/.history
+mobile/.svn/
+mobile/.swiftpm/
+mobile/migrate_working_dir/
+
+# IntelliJ related
+mobile/*.iml
+mobile/*.ipr
+mobile/*.iws
+mobile/.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+mobile/**/doc/api/
+mobile/**/ios/Flutter/.last_build_id
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/coverage/
+
+# Symbolication related
+mobile/app.*.symbols
+
+# Obfuscation related
+mobile/app.*.map.json
+
+# Android Studio will place build artifacts here
+mobile/android/app/debug
+mobile/android/app/profile
+mobile/android/app/release
